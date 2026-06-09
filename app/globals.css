@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Light mode — Need's it design system */
+  --color-primary: #7cc9d4;
+  --color-primary-foreground: #f8f6ee;
+  --color-background: #7cc9d4;
+  --color-foreground: #f8f6ee;
+  --color-card: #f8f6ee;
+  --color-card-foreground: #0c2f3d;
+  --color-button: #0c2f3d;
+  --color-button-foreground: #f8f6ee;
+  --color-button-hover: #16445a;
+  --color-accent: #e9cb72;
+  --color-muted: #5a8a94;
+  --color-border: #b8dde3;
+  --color-input: #f8f6ee;
+  --color-ring: #0c2f3d;
+
+  /* Dark mode tokens (applied via .dark class) */
+  --color-dark-background: #121212;
+  --color-dark-card: #1d1d1d;
+  --color-dark-foreground: #f8f6ee;
+  --color-dark-button: #ff9a4a;
+  --color-dark-button-foreground: #121212;
+  --color-dark-accent: #7cc9d4;
+
+  --radius-card: 24px;
+  --radius-input: 16px;
+  --radius-button: 9999px;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply min-h-screen font-sans;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  .dark body,
+  .dark {
+    --color-background: var(--color-dark-background);
+    --color-foreground: var(--color-dark-foreground);
+    --color-card: var(--color-dark-card);
+    --color-card-foreground: var(--color-dark-foreground);
+    --color-button: var(--color-dark-button);
+    --color-button-foreground: var(--color-dark-button-foreground);
+    --color-button-hover: #e8883d;
+    --color-accent: var(--color-dark-accent);
+    --color-border: #333333;
+    --color-input: var(--color-dark-card);
+    --color-ring: var(--color-dark-accent);
+  }
+}
+
+@layer utilities {
+  .card-surface {
+    background-color: var(--color-card);
+    color: var(--color-card-foreground);
+    border-radius: var(--radius-card);
+    box-shadow: 0 4px 24px rgba(12, 47, 61, 0.08);
+  }
+
+  .dark .card-surface {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+}

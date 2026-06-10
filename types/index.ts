@@ -14,5 +14,6 @@ export type {
   RequestEvent,
   RequestEventType,
   RequestPhoto,
+  RequestProfessionalLink,
   RequestStatus,
 } from "./database";

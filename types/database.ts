@@ -147,6 +147,19 @@ export interface RequestEvent {
   created_at: string;
 }
 
+export interface RequestProfessionalLink {
+  id: string;
+  request_id: string;
+  professional_id: string;
+  token: string;
+  distance_km: number;
+  email_sent_at: string | null;
+  link_opened_at: string | null;
+  reminder_sent_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -231,6 +244,20 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<RequestEvent>;
+      };
+      request_professional_links: {
+        Row: RequestProfessionalLink;
+        Insert: Omit<
+          RequestProfessionalLink,
+          "id" | "created_at" | "email_sent_at" | "link_opened_at" | "reminder_sent_at"
+        > & {
+          id?: string;
+          created_at?: string;
+          email_sent_at?: string | null;
+          link_opened_at?: string | null;
+          reminder_sent_at?: string | null;
+        };
+        Update: Partial<RequestProfessionalLink>;
       };
     };
   };

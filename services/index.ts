@@ -7,3 +7,13 @@ export { alertsService, coverageAlertsService } from "./alerts.service";
 export { invoicesService } from "./invoices.service";
 export { eventsService } from "./events.service";
 export { photosService } from "./photos.service";
+export { matchingService } from "./matching.service";
+export { proLinksService } from "./pro-links.service";
+export { sendEmail } from "./email.service";
+export {
+  claimMission,
+  dispatchRequestToProfessionals,
+  releaseMission,
+  resolveProPageView,
+  sendPendingReminders,
+} from "./pro-workflow.service";

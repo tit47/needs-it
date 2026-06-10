@@ -1,8 +1,10 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { categoriesService } from "@/services/categories.service";
 import { eventsService } from "@/services/events.service";
 import { photosService } from "@/services/photos.service";
+import { dispatchRequestToProfessionals } from "@/services/pro-workflow.service";
 import { requestsService } from "@/services/requests.service";
 import { verifyBanAddress } from "@/utils/geocoding";
 import { generateMissionCode } from "@/utils/mission-code";
@@ -148,6 +150,21 @@ export async function createRequestAction(
     postcode: verifiedAddress.postcode,
     photo_count: photoFiles.length,
   });
+
+  const { data: category } = await categoriesService.getById(
+    supabase,
+    sanitized.categoryId
+  );
+
+  if (category) {
+    await dispatchRequestToProfessionals(
+      supabase,
+      request.id,
+      category,
+      verifiedAddress.latitude,
+      verifiedAddress.longitude
+    );
+  }
 
   return { success: true, missionCode: request.mission_code };
 }

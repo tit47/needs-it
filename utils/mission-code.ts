@@ -8,3 +8,23 @@ export function generateMissionCode(): string {
   }
   return code;
 }
+
+export function normalizeMissionCodeInput(value: string): string {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 4);
+}
+
+export function isValidMissionCodeFormat(value: string): boolean {
+  if (value.length !== 4) return false;
+  return [...value].every((char) => CODE_CHARS.includes(char));
+}
+
+export function missionCodesMatch(
+  input: string,
+  expected: string
+): boolean {
+  return normalizeMissionCodeInput(input) === normalizeMissionCodeInput(expected);
+}

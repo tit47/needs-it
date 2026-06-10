@@ -48,7 +48,7 @@ export const requestsService = {
         search_extended: false,
       })
       .select("id, mission_code")
-      .single();
+      .single<{ id: string; mission_code: string }>();
   },
 
   async updateStatus(client: Client, id: string, status: RequestStatus) {
@@ -56,5 +56,52 @@ export const requestsService = {
       .from("requests")
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id);
+  },
+
+  async updateMatchingMetadata(
+    client: Client,
+    id: string,
+    metadata: {
+      first_pro_distance: number | null;
+      professional_count: number;
+    }
+  ) {
+    return client
+      .from("requests")
+      .update({
+        ...metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+  },
+
+  async claimRequest(
+    client: Client,
+    id: string,
+    professionalId: string
+  ) {
+    return client
+      .from("requests")
+      .update({
+        status: "claimed",
+        claimed_by: professionalId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("id");
+  },
+
+  async releaseRequest(client: Client, id: string) {
+    return client
+      .from("requests")
+      .update({
+        status: "pending",
+        claimed_by: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("status", "claimed")
+      .select("id");
   },
 };

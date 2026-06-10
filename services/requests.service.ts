@@ -1,7 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, RequestStatus } from "@/types";
+import type { RequestStatus, SupabaseDbClient } from "@/types";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export type CreateRequestInput = {
   category_id: string;
@@ -19,7 +18,9 @@ export const requestsService = {
   async list(client: Client) {
     return client
       .from("requests")
-      .select("*, categories(name)")
+      .select(
+        "*, categories(name), professionals!requests_claimed_by_fkey(full_name)"
+      )
       .order("created_at", { ascending: false });
   },
 

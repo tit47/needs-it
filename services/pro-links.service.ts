@@ -1,7 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, RequestProfessionalLink } from "@/types";
+import type { RequestProfessionalLink, SupabaseDbClient } from "@/types";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export type ProLinkWithRelations = RequestProfessionalLink & {
   requests: {

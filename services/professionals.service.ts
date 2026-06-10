@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types";
-type Client = SupabaseClient<Database>;
+import type { SupabaseDbClient } from "@/types";
+type Client = SupabaseDbClient;
 
 export const professionalsService = {
   async list(client: Client) {
@@ -24,6 +23,43 @@ export const professionalsService = {
 
   async updateStatus(client: Client, id: string, active: boolean) {
     return client.from("professionals").update({ active }).eq("id", id);
+  },
+
+  async update(
+    client: Client,
+    id: string,
+    data: {
+      full_name?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      siren?: string;
+      categories?: string[];
+      radius_km?: number;
+    }
+  ) {
+    return client.from("professionals").update(data).eq("id", id).select("*").single();
+  },
+
+  async getUnpaidAmount(client: Client, professionalId: string) {
+    const { data } = await client
+      .from("invoices")
+      .select("amount")
+      .eq("professional_id", professionalId)
+      .eq("paid", false);
+
+    return (data ?? []).reduce((sum, invoice) => sum + Number(invoice.amount), 0);
+  },
+
+  async getClaimHistory(client: Client, professionalId: string) {
+    return client
+      .from("claims")
+      .select(
+        "id, status, claimed_at, released_at, created_at, requests(id, city, status, mission_code, categories(name))"
+      )
+      .eq("professional_id", professionalId)
+      .order("created_at", { ascending: false });
   },
 
   async incrementCompletedJobs(client: Client, id: string) {

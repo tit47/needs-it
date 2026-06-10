@@ -9,6 +9,8 @@ export { eventsService } from "./events.service";
 export { photosService } from "./photos.service";
 export { matchingService } from "./matching.service";
 export { proLinksService } from "./pro-links.service";
+export { dashboardService } from "./dashboard.service";
+export { settingsService, SETTINGS_KEYS, DEFAULT_MISSION_PRICE_EUR } from "./settings.service";
 export { sendEmail } from "./email.service";
 export {
   claimMission,

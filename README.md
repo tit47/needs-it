@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02 et 03 terminées.**  
+**État du projet : étapes 01, 02, 03 et 04 terminées.**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -35,10 +35,10 @@ npm run dev
 |----------|-------------|------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Oui | URL du projet Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Oui | Clé publique Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Oui | Opérations serveur (actions, matching, workflow pro) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Oui | Opérations serveur (actions, matching, workflow pro, admin) |
 | `NEXT_PUBLIC_APP_URL` | Oui | URL de l'app (liens emails pro, ex. `http://localhost:3000`) |
 | `RESEND_API_KEY` | Recommandé | Envoi des emails transactionnels |
-| `RESEND_FROM_EMAIL` | Recommandé | Expéditeur (défaut : `Need's it <noreply@needs-it.fr>`) |
+| `RESEND_FROM_EMAIL` | Recommandé | Expéditeur par défaut (surchargeable dans Paramètres admin) |
 | `CRON_SECRET` | Optionnel | Sécurise `GET /api/cron/reminders` |
 | `TELEGRAM_BOT_TOKEN` | Optionnel | Alertes Telegram (étape future) |
 | `TELEGRAM_CHAT_ID` | Optionnel | Canal Telegram (étape future) |
@@ -56,6 +56,7 @@ Fichiers (dans l'ordre) :
 1. `20250609000000_initial_schema.sql` — schéma complet V1
 2. `20250609000001_public_categories_read.sql` — lecture publique des catégories actives
 3. `20250610000000_pro_workflow.sql` — liens sécurisés pro (`request_professional_links`)
+4. `20250610000001_app_settings.sql` — paramètres applicatifs (`app_settings`)
 
 ---
 
@@ -66,7 +67,7 @@ Fichiers (dans l'ordre) :
 - Structure Next.js App Router, design system Tailwind (mobile first)
 - Schéma PostgreSQL Supabase (UUID, pas de suppression, statuts + historique)
 - Clients Supabase (`lib/supabase/`), services de données, types TypeScript
-- Shell admin (layout, sidebar, navbar) — **pages admin en coquille**
+- Shell admin (layout, sidebar, navbar)
 - Intégrations Resend et Telegram préparées
 
 ### Étape 02 — Workflow client ✅
@@ -104,6 +105,32 @@ Fichiers (dans l'ordre) :
 - `services/matching.service.ts`, `pro-links.service.ts`, `pro-workflow.service.ts`, `email.service.ts`
 - `emails/templates/pro-workflow.ts`
 
+### Étape 04 — Dashboard admin ✅
+
+- **Dashboard** (`/admin`) : stats du jour, activité récente, alertes importantes (rouge/orange)
+- **Demandes** : tableau + détail (description, photos, client, distance, historique)
+- **Professionnels** : tableau, modification, suspension/réactivation, fiche (montant dû, historique missions)
+- **Candidats** : validation (crée un pro), refus, suspension
+- **Alertes** : liste avec filtres (ville, catégorie, dates, résolu) + marquer comme résolu
+- **Paramètres** : prix mission, email expéditeur, flag Telegram, gestion des catégories
+- **Actions serveur** : `app/actions/admin.ts` (mutations admin + revalidation des pages)
+- **Services** : `dashboard.service.ts`, `settings.service.ts` (+ extensions des services existants)
+
+**Non implémenté dans cette étape :**
+
+- `/admin/opportunites` et `/admin/facturation` restent des coquilles UI
+- Authentification admin (accès `/admin` non protégé par login)
+- Envoi Telegram et création automatique d'alertes métier non branchés
+- L'email expéditeur en base (`app_settings`) n'est pas encore utilisé par `email.service` (Resend utilise toujours `RESEND_FROM_EMAIL` / défaut)
+
+**Fichiers clés :**
+
+- `app/admin/*/page.tsx`
+- `components/admin/*`
+- `app/actions/admin.ts`
+- `services/dashboard.service.ts`, `settings.service.ts`
+- `utils/admin-labels.ts`, `utils/datetime.ts`
+
 ---
 
 ## Fonctionnalités disponibles
@@ -133,14 +160,14 @@ Fichiers (dans l'ordre) :
 
 | Route | Statut |
 |-------|--------|
-| `/admin` | Coquille (stats placeholder) |
-| `/admin/demandes` | Coquille |
-| `/admin/professionnels` | Coquille |
-| `/admin/candidats` | Coquille |
-| `/admin/alertes` | Coquille |
-| `/admin/opportunites` | Coquille |
-| `/admin/facturation` | Coquille |
-| `/admin/parametres` | Coquille |
+| `/admin` | ✅ Dashboard (stats, activité, alertes importantes) |
+| `/admin/demandes` | ✅ Liste + détail demande |
+| `/admin/professionnels` | ✅ Liste, fiche, modification, suspension |
+| `/admin/candidats` | ✅ Liste, validation / refus / suspension |
+| `/admin/alertes` | ✅ Liste filtrable + résolution |
+| `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
+| `/admin/opportunites` | ❌ Coquille UI |
+| `/admin/facturation` | ❌ Coquille UI |
 | Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
 
 ### API
@@ -175,6 +202,8 @@ Autres pros désactivés + email « Mission déjà attribuée »
 (option) Pro libère → demande repending + emails « Demande disponible »
         ↓
 (option) Cron 30 min → email « Rappel » si toujours pending
+        ↓
+Admin pilote via /admin (demandes, pros, candidats, alertes, paramètres)
 ```
 
 ---
@@ -187,13 +216,15 @@ app/
   actions/
     create-request.ts         → Création demande (server action)
     pro-workflow.ts           → Prise / libération mission (server actions)
+    admin.ts                  → Actions back-office (server actions)
   pro/[token]/page.tsx        → Page professionnelle
   api/cron/reminders/route.ts → Rappels 30 min
-  admin/                      → Back-office (coquilles UI)
+  admin/                      → Back-office admin
 
 components/
   client/                     → Parcours client (formulaire, confirmation…)
   pro/                        → Parcours pro (claim, contact, photos…)
+  admin/                      → Panneaux admin (tableaux, stats, paramètres…)
   ui/                         → Design system (Button, Card, Input…)
   layout/                     → AdminShell, Sidebar, Navbar
 
@@ -202,6 +233,8 @@ services/                     → Couche données + orchestration métier
   pro-links.service.ts        → Liens sécurisés /pro/[token]
   pro-workflow.service.ts     → Matching, claim, release, emails, rappels
   email.service.ts            → Envoi via Resend
+  dashboard.service.ts        → Stats et activité admin
+  settings.service.ts         → Paramètres app_settings
   requests.service.ts         → Demandes
   claims.service.ts           → Prises de mission
   events.service.ts           → Historique request_events
@@ -217,9 +250,10 @@ emails/templates/             → Templates HTML transactionnels
 
 hooks/                        → useCategorySearch, usePhotoUpload, useAddressAutocomplete
 
-types/                        → database.ts (schéma), index.ts (réexports)
+types/                        → database.ts (schéma), index.ts (réexports + SupabaseDbClient)
 
-utils/                        → validation, geocoding, distance, mission-code, phone…
+utils/                        → validation, geocoding, distance, mission-code, phone,
+                              admin-labels, datetime…
 
 supabase/migrations/          → Migrations SQL
 public/                       → Assets statiques
@@ -233,14 +267,16 @@ public/                       → Assets statiques
 |-------|------|
 | `categories` | Métiers (Plombier, Électricien…) |
 | `professionals` | Pros actifs (catégories[], rayon_km, lat/lon) |
-| `candidate_professionals` | Candidatures pro (admin futur) |
+| `candidate_professionals` | Candidatures pro (validation admin) |
 | `requests` | Demandes clients (statut, code mission, claimed_by) |
 | `request_photos` | Photos liées à une demande |
 | `request_professional_links` | Token sécurisé par demande/pro + distance |
 | `claims` | Historique prises / libérations |
 | `request_events` | Journal d'événements |
-| `invoices` | Facturation mensuelle par pro |
-| `alerts`, `coverage_alerts` | Alertes couverture (admin futur) |
+| `invoices` | Facturation mensuelle par pro (montant = missions × prix paramétré) |
+| `alerts` | Alertes unitaires (consultables et résolvables en admin) |
+| `coverage_alerts` | Alertes agrégées couverture (affichées sur le dashboard, pas de page dédiée) |
+| `app_settings` | Paramètres applicatifs (prix mission, email expéditeur, flag Telegram) |
 
 ### Statuts demande (`request_status`)
 
@@ -269,7 +305,7 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 
 ## Conventions pour les prochains développements
 
-1. **Mobile first** — l'expérience pro et client est pensée téléphone d'abord.
+1. **Mobile first** — l'expérience pro et client est pensée téléphone d'abord ; l'admin est utilisable sur mobile mais optimisé desktop.
 2. **Pas de compte pro** — accès uniquement via lien sécurisé reçu par email.
 3. **Le téléphone + code mission** garantissent un échange réel avant dévoilement de l'adresse.
 4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client.
@@ -277,16 +313,19 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 6. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
 7. **Historique** — tracer les actions significatives via `eventsService.log()`.
 8. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
+9. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
+10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
 
 ---
 
 ## Prochaines étapes (non implémentées)
 
-- Back-office admin fonctionnel (listes, filtres, actions)
+- Page **Opportunités** (`/admin/opportunites`) — tableau couverture ville/catégorie
+- Page **Facturation** (`/admin/facturation`) — suivi factures, envoi, paiement
 - Authentification admin (Supabase Auth + protection `/admin`)
-- Alertes et opportunités (couverture géographique)
+- Génération automatique des alertes et opportunités (couverture géographique)
 - Notifications Telegram branchées au métier
-- Facturation avancée (montants, envoi factures)
+- Utilisation de l'email expéditeur stocké en `app_settings` dans `email.service`
 - Extension de recherche (`search_extended`) si aucun pro trouvé
 - Statut `completed` / clôture de mission côté pro ou admin
 

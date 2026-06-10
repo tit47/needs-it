@@ -1,6 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types";
-type Client = SupabaseClient<Database>;
+import type { SupabaseDbClient } from "@/types";
+import { settingsService } from "./settings.service";
+type Client = SupabaseDbClient;
 
 export const invoicesService = {
   async list(client: Client) {
@@ -25,6 +25,7 @@ export const invoicesService = {
 
   async prepareMissionBilling(client: Client, professionalId: string) {
     const month = new Date().toISOString().slice(0, 7);
+    const missionPrice = await settingsService.getMissionPriceEur(client);
     const { data: existing } = await this.getByProfessionalAndMonth(
       client,
       professionalId,
@@ -32,10 +33,12 @@ export const invoicesService = {
     );
 
     if (existing) {
+      const missionCount = existing.mission_count + 1;
       return client
         .from("invoices")
         .update({
-          mission_count: existing.mission_count + 1,
+          mission_count: missionCount,
+          amount: missionCount * missionPrice,
         })
         .eq("id", existing.id)
         .select("*")
@@ -48,7 +51,7 @@ export const invoicesService = {
         professional_id: professionalId,
         month,
         mission_count: 1,
-        amount: 0,
+        amount: missionPrice,
       })
       .select("*")
       .single();

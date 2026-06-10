@@ -1,7 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Category, Database } from "@/types";
+import type { Category, SupabaseDbClient } from "@/types";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export const categoriesService = {
   async list(client: Client, activeOnly = true) {
@@ -25,5 +24,21 @@ export const categoriesService = {
       .eq("active", true)
       .ilike("name", `%${term}%`)
       .order("name");
+  },
+
+  async create(client: Client, name: string) {
+    return client
+      .from("categories")
+      .insert({ name, active: true })
+      .select("*")
+      .single();
+  },
+
+  async setActive(client: Client, id: string, active: boolean) {
+    return client.from("categories").update({ active }).eq("id", id);
+  },
+
+  async updateName(client: Client, id: string, name: string) {
+    return client.from("categories").update({ name }).eq("id", id);
   },
 };

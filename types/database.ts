@@ -160,6 +160,12 @@ export interface RequestProfessionalLink {
   created_at: string;
 }
 
+export interface AppSetting {
+  key: string;
+  value: string;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -259,6 +265,21 @@ export interface Database {
         };
         Update: Partial<RequestProfessionalLink>;
       };
+      app_settings: {
+        Row: AppSetting;
+        Insert: Omit<AppSetting, "updated_at"> & { updated_at?: string };
+        Update: Partial<AppSetting>;
+      };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      request_status: RequestStatus;
+      claim_status: ClaimStatus;
+      candidate_status: CandidateStatus;
+      alert_level: AlertLevel;
+      request_event_type: RequestEventType;
+    };
+    CompositeTypes: Record<string, never>;
   };
 }

@@ -1,0 +1,250 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  alertsService,
+  candidatesService,
+  categoriesService,
+  professionalsService,
+  requestsService,
+  settingsService,
+  SETTINGS_KEYS,
+} from "@/services";
+import type {
+  CandidateStatus,
+  Request,
+  RequestEvent,
+  RequestPhoto,
+} from "@/types";
+
+function revalidateAdmin() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/demandes");
+  revalidatePath("/admin/professionnels");
+  revalidatePath("/admin/candidats");
+  revalidatePath("/admin/alertes");
+  revalidatePath("/admin/parametres");
+}
+
+export async function suspendProfessionalAction(id: string, active: boolean) {
+  const client = createAdminClient();
+  const { error } = await professionalsService.updateStatus(client, id, active);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function updateProfessionalAction(
+  id: string,
+  data: {
+    full_name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    siren: string;
+    categories: string[];
+    radius_km: number;
+  }
+) {
+  const client = createAdminClient();
+  const { error } = await professionalsService.update(client, id, data);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function updateCandidateStatusAction(
+  id: string,
+  status: CandidateStatus
+) {
+  const client = createAdminClient();
+
+  if (status === "accepted") {
+    const { error } = await candidatesService.accept(client, id);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+  } else {
+    const { error } = await candidatesService.updateStatus(client, id, status);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function resolveAlertAction(id: string) {
+  const client = createAdminClient();
+  const { error } = await alertsService.resolve(client, id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function updateMissionPriceAction(priceEur: number) {
+  if (!Number.isFinite(priceEur) || priceEur <= 0) {
+    return { success: false, error: "Le prix doit être supérieur à 0." };
+  }
+
+  const client = createAdminClient();
+  const { error } = await settingsService.set(
+    client,
+    SETTINGS_KEYS.missionPriceEur,
+    String(priceEur)
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function updateSenderEmailAction(senderEmail: string) {
+  const trimmed = senderEmail.trim();
+
+  if (!trimmed) {
+    return { success: false, error: "L'email expéditeur est requis." };
+  }
+
+  const client = createAdminClient();
+  const { error } = await settingsService.set(
+    client,
+    SETTINGS_KEYS.senderEmail,
+    trimmed
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function updateTelegramNotificationsAction(enabled: boolean) {
+  const client = createAdminClient();
+  const { error } = await settingsService.set(
+    client,
+    SETTINGS_KEYS.telegramNotificationsEnabled,
+    enabled ? "true" : "false"
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function toggleCategoryAction(id: string, active: boolean) {
+  const client = createAdminClient();
+  const { error } = await categoriesService.setActive(client, id, active);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function createCategoryAction(name: string) {
+  const trimmed = name.trim();
+
+  if (!trimmed) {
+    return { success: false, error: "Le nom de la catégorie est requis." };
+  }
+
+  const client = createAdminClient();
+  const { error } = await categoriesService.create(client, trimmed);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+
+export type AdminRequestDetail = Request & {
+  categories: { name: string } | null;
+  request_photos: RequestPhoto[];
+  request_events: RequestEvent[];
+};
+
+export async function getRequestDetailAction(id: string): Promise<
+  | { success: true; data: AdminRequestDetail }
+  | { success: false; error: string }
+> {
+  const client = createAdminClient();
+  const { data, error } = await requestsService.getById(client, id);
+
+  if (error || !data) {
+    return { success: false, error: error?.message ?? "Demande introuvable." };
+  }
+
+  return { success: true, data: data as AdminRequestDetail };
+}
+
+export async function getProfessionalDetailAction(id: string): Promise<
+  | {
+      success: true;
+      data: {
+        professional: NonNullable<
+          Awaited<ReturnType<typeof professionalsService.getById>>["data"]
+        >;
+        unpaidAmount: number;
+        history: NonNullable<
+          Awaited<ReturnType<typeof professionalsService.getClaimHistory>>["data"]
+        >;
+      };
+    }
+  | { success: false; error: string }
+> {
+  const client = createAdminClient();
+  const { data: professional, error } = await professionalsService.getById(
+    client,
+    id
+  );
+
+  if (error || !professional) {
+    return {
+      success: false,
+      error: error?.message ?? "Professionnel introuvable.",
+    };
+  }
+
+  const [unpaidAmount, { data: history }] = await Promise.all([
+    professionalsService.getUnpaidAmount(client, id),
+    professionalsService.getClaimHistory(client, id),
+  ]);
+
+  return {
+    success: true,
+    data: {
+      professional,
+      unpaidAmount,
+      history: history ?? [],
+    },
+  };
+}

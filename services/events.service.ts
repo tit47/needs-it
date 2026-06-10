@@ -1,7 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, RequestEventType } from "@/types";
+import type { RequestEventType, SupabaseDbClient } from "@/types";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export const eventsService = {
   async log(
@@ -23,5 +22,13 @@ export const eventsService = {
       .select("*")
       .eq("request_id", requestId)
       .order("created_at", { ascending: true });
+  },
+
+  async listRecent(client: Client, limit = 20) {
+    return client
+      .from("request_events")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
   },
 };

@@ -1,8 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types";
+import type { SupabaseDbClient } from "@/types";
 import { REQUEST_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export const photosService = {
   async listByRequest(client: Client, requestId: string) {

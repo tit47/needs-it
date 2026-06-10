@@ -1,50 +1,50 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader, SettingsPanel } from "@/components/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  categoriesService,
+  DEFAULT_MISSION_PRICE_EUR,
+  settingsService,
+  SETTINGS_KEYS,
+} from "@/services";
 
-const settingsSections = [
-  {
-    title: "Catégories",
-    description: "Gestion des catégories de services proposées.",
-  },
-  {
-    title: "Prix de la mise en relation",
-    description: "Montant facturé par mission validée (5 € par défaut).",
-  },
-  {
-    title: "Email expéditeur",
-    description: "Adresse utilisée pour l'envoi des emails professionnels.",
-  },
-  {
-    title: "Notifications Telegram",
-    description: "Configuration des alertes automatiques Telegram.",
-  },
-  {
-    title: "Paramètres généraux",
-    description: "Options globales de la plateforme.",
-  },
-];
+export default async function ParametresPage() {
+  const client = createAdminClient();
 
-export default function ParametresPage() {
+  const [{ data: categories }] = await Promise.all([
+    categoriesService.list(client, false),
+  ]);
+
+  const settingsMap = await settingsService.getSettingsMap(client);
+
+  const missionPriceEur = Number(settingsMap[SETTINGS_KEYS.missionPriceEur]);
+  const senderEmail =
+    settingsMap[SETTINGS_KEYS.senderEmail] ??
+    process.env.RESEND_FROM_EMAIL ??
+    "Need's it <noreply@needs-it.fr>";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
-          Paramètres
-        </h1>
-        <p className="mt-1 text-sm opacity-80">
-          Configuration de la plateforme — à implémenter.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Paramètres"
+        description="Configuration de la plateforme Need's it."
+      />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {settingsSections.map((section) => (
-          <Card key={section.title}>
-            <CardHeader>
-              <CardTitle>{section.title}</CardTitle>
-              <CardDescription>{section.description}</CardDescription>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      <SettingsPanel
+        missionPriceEur={
+          Number.isFinite(missionPriceEur) && missionPriceEur > 0
+            ? missionPriceEur
+            : DEFAULT_MISSION_PRICE_EUR
+        }
+        senderEmail={senderEmail}
+        telegramNotificationsEnabled={
+          settingsMap[SETTINGS_KEYS.telegramNotificationsEnabled] === "true"
+        }
+        telegramConfigured={Boolean(
+          process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID
+        )}
+        appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}
+        categories={categories ?? []}
+      />
     </div>
   );
 }

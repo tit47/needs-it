@@ -1,8 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Professional } from "@/types";
+import type { Professional, SupabaseDbClient } from "@/types";
 import { calculateDistanceKm } from "@/utils/distance";
 
-type Client = SupabaseClient<Database>;
+type Client = SupabaseDbClient;
 
 export type MatchedProfessional = {
   professional: Professional;

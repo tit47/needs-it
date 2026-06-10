@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types";
-type Client = SupabaseClient<Database>;
+import type { SupabaseDbClient } from "@/types";
+type Client = SupabaseDbClient;
 
 export const claimsService = {
   async getByRequest(client: Client, requestId: string) {

@@ -7,6 +7,7 @@ import {
 } from "@/emails/templates";
 import { getPublicPhotoUrl } from "@/lib/supabase/storage";
 import { claimsService } from "@/services/claims.service";
+import { coverageService } from "@/services/coverage.service";
 import { sendEmail } from "@/services/email.service";
 import { eventsService } from "@/services/events.service";
 import { invoicesService } from "@/services/invoices.service";
@@ -35,7 +36,8 @@ export async function dispatchRequestToProfessionals(
   requestId: string,
   category: Category,
   latitude: number,
-  longitude: number
+  longitude: number,
+  city: string
 ): Promise<{ matchedCount: number }> {
   const matches = await matchingService.findMatchingProfessionals(
     client,
@@ -47,6 +49,13 @@ export async function dispatchRequestToProfessionals(
   await requestsService.updateMatchingMetadata(client, requestId, {
     first_pro_distance: matches[0]?.distanceKm ?? null,
     professional_count: matches.length,
+  });
+
+  await coverageService.processNewRequest(client, {
+    requestId,
+    city,
+    categoryName: category.name,
+    professionalCount: matches.length,
   });
 
   if (!matches.length) {
@@ -270,6 +279,13 @@ export async function claimMission(
     professional_id: link.professional_id,
   });
 
+  const categoryName = request.categories?.name ?? "Demande";
+  await coverageService.processMissionClaimed(
+    client,
+    request.city,
+    categoryName
+  );
+
   const photoUrls = getPhotoUrls(request.request_photos);
   const confirmedTemplate = renderMissionConfirmedEmail({
     clientName: request.client_name,
@@ -295,8 +311,6 @@ export async function claimMission(
     client,
     request.id
   );
-
-  const categoryName = request.categories?.name ?? "Demande";
 
   for (const otherLink of otherLinks ?? []) {
     if (otherLink.professional_id === link.professional_id) continue;
@@ -428,6 +442,7 @@ export async function sendPendingReminders(
   for (const link of links ?? []) {
     const request = link.requests as {
       description: string;
+      city: string;
       categories: { name: string } | null;
     };
     const professional = link.professionals as {
@@ -454,6 +469,15 @@ export async function sendPendingReminders(
         professional_id: link.professional_id,
         template: "reminder-30min",
       });
+
+      if (request.city && request.categories?.name) {
+        await coverageService.processNoResponse(client, {
+          requestId: link.request_id,
+          city: request.city,
+          categoryName: request.categories.name,
+        });
+      }
+
       sent += 1;
     }
   }

@@ -162,7 +162,8 @@ export async function createRequestAction(
       request.id,
       category,
       verifiedAddress.latitude,
-      verifiedAddress.longitude
+      verifiedAddress.longitude,
+      verifiedAddress.city
     );
   }
 

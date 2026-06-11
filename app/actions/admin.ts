@@ -6,12 +6,14 @@ import {
   alertsService,
   candidatesService,
   categoriesService,
+  coverageAlertsService,
   professionalsService,
   requestsService,
   settingsService,
   SETTINGS_KEYS,
 } from "@/services";
 import type {
+  Alert,
   CandidateStatus,
   Request,
   RequestEvent,
@@ -24,6 +26,7 @@ function revalidateAdmin() {
   revalidatePath("/admin/professionnels");
   revalidatePath("/admin/candidats");
   revalidatePath("/admin/alertes");
+  revalidatePath("/admin/opportunites");
   revalidatePath("/admin/parametres");
 }
 
@@ -95,6 +98,72 @@ export async function resolveAlertAction(id: string) {
 
   revalidateAdmin();
   return { success: true };
+}
+
+export async function resolveCoverageAlertAction(id: string) {
+  const client = createAdminClient();
+  const { error } = await coverageAlertsService.resolve(client, id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export type AlertDetail = Alert & {
+  request: Pick<
+    Request,
+    | "id"
+    | "mission_code"
+    | "status"
+    | "client_name"
+    | "client_phone"
+    | "city"
+    | "professional_count"
+    | "created_at"
+  > | null;
+};
+
+export async function getAlertDetailAction(id: string): Promise<
+  | { success: true; data: AlertDetail }
+  | { success: false; error: string }
+> {
+  const client = createAdminClient();
+  const { data: alert, error } = await alertsService.getById(client, id);
+
+  if (error || !alert) {
+    return { success: false, error: error?.message ?? "Alerte introuvable." };
+  }
+
+  if (!alert.request_id) {
+    return { success: true, data: { ...alert, request: null } };
+  }
+
+  const { data: request } = await requestsService.getById(
+    client,
+    alert.request_id
+  );
+
+  return {
+    success: true,
+    data: {
+      ...alert,
+      request: request
+        ? {
+            id: request.id,
+            mission_code: request.mission_code,
+            status: request.status,
+            client_name: request.client_name,
+            client_phone: request.client_phone,
+            city: request.city,
+            professional_count: request.professional_count,
+            created_at: request.created_at,
+          }
+        : null,
+    },
+  };
 }
 
 export async function updateMissionPriceAction(priceEur: number) {

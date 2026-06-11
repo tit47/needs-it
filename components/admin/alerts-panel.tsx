@@ -1,11 +1,16 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { resolveAlertAction } from "@/app/actions/admin";
-import { AlertLevelBadge } from "@/components/admin/status-badges";
+import {
+  getAlertDetailAction,
+  resolveAlertAction,
+  type AlertDetail,
+} from "@/app/actions/admin";
+import { AlertLevelBadge, RequestStatusBadge } from "@/components/admin/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import {
   Table,
   TableBody,
@@ -30,6 +35,9 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   const [resolvedFilter, setResolvedFilter] = useState<"all" | "open" | "done">(
     "open"
   );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<AlertDetail | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filteredAlerts = useMemo(() => {
@@ -55,6 +63,26 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
     startTransition(async () => {
       await resolveAlertAction(id);
     });
+  };
+
+  const openDetail = (id: string) => {
+    setSelectedId(id);
+    setDetailError(null);
+    startTransition(async () => {
+      const result = await getAlertDetailAction(id);
+      if (!result.success) {
+        setDetailError(result.error ?? "Impossible de charger l'alerte.");
+        setDetail(null);
+        return;
+      }
+      setDetail(result.data);
+    });
+  };
+
+  const closeDetail = () => {
+    setSelectedId(null);
+    setDetail(null);
+    setDetailError(null);
   };
 
   return (
@@ -138,16 +166,26 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
                   <TableCell className="max-w-[280px]">{alert.message}</TableCell>
                   <TableCell>{alert.resolved ? "Oui" : "Non"}</TableCell>
                   <TableCell>
-                    {!alert.resolved && (
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        variant="secondary"
-                        onClick={() => handleResolve(alert.id)}
+                        variant="ghost"
+                        onClick={() => openDetail(alert.id)}
                         disabled={isPending}
                       >
-                        Marquer résolu
+                        Voir détails
                       </Button>
-                    )}
+                      {!alert.resolved && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleResolve(alert.id)}
+                          disabled={isPending}
+                        >
+                          Marquer résolu
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -155,6 +193,48 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
           </TableBody>
         </Table>
       </Card>
+
+      <Modal open={selectedId != null} onClose={closeDetail} title="Détail alerte">
+        {detailError && (
+          <p className="text-sm text-[var(--color-danger)]">{detailError}</p>
+        )}
+        {detail && (
+          <div className="space-y-4 text-sm text-[var(--color-card-foreground)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertLevelBadge level={detail.level} />
+              <span>
+                {detail.city} — {detail.category}
+              </span>
+            </div>
+            <p>{detail.message}</p>
+            <p className="text-[var(--color-muted)]">
+              Créée le {formatDateFr(detail.created_at)}
+              {detail.resolved ? " — Résolue" : " — À traiter"}
+            </p>
+
+            {detail.request ? (
+              <div className="space-y-2 rounded-2xl border border-[var(--color-border)] p-4">
+                <p className="font-medium">Demande liée</p>
+                <p>Code mission : {detail.request.mission_code}</p>
+                <p>Client : {detail.request.client_name}</p>
+                <p>Téléphone : {detail.request.client_phone}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <RequestStatusBadge status={detail.request.status} />
+                  {detail.request.professional_count != null && (
+                    <span className="text-[var(--color-muted)]">
+                      {detail.request.professional_count} pro(s) contacté(s)
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[var(--color-muted)]">
+                Aucune demande client associée à cette alerte.
+              </p>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

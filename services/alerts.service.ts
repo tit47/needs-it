@@ -1,6 +1,14 @@
-import type { SupabaseDbClient } from "@/types";
+import type { Alert, SupabaseDbClient } from "@/types";
 
 type Client = SupabaseDbClient;
+
+export type CreateAlertInput = {
+  request_id?: string | null;
+  city: string;
+  category: string;
+  level: Alert["level"];
+  message: string;
+};
 
 export type AlertFilters = {
   city?: string;
@@ -44,6 +52,25 @@ export const alertsService = {
     return this.list(client, { resolved: false });
   },
 
+  async getById(client: Client, id: string) {
+    return client.from("alerts").select("*").eq("id", id).single();
+  },
+
+  async create(client: Client, input: CreateAlertInput) {
+    return client
+      .from("alerts")
+      .insert({
+        request_id: input.request_id ?? null,
+        city: input.city,
+        category: input.category,
+        level: input.level,
+        message: input.message,
+        resolved: false,
+      })
+      .select("*")
+      .single<Alert>();
+  },
+
   async resolve(client: Client, id: string) {
     return client.from("alerts").update({ resolved: true }).eq("id", id);
   },
@@ -56,5 +83,12 @@ export const coverageAlertsService = {
       .select("*")
       .eq("resolved", resolved)
       .order("request_count", { ascending: false });
+  },
+
+  async resolve(client: Client, id: string) {
+    return client
+      .from("coverage_alerts")
+      .update({ resolved: true })
+      .eq("id", id);
   },
 };

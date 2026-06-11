@@ -141,7 +141,7 @@ export const proLinksService = {
       .select(
         `
         *,
-        requests(id, status, created_at, description, categories(name)),
+        requests(id, status, created_at, description, city, categories(name)),
         professionals(id, full_name, email)
       `
       )

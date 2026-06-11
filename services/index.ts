@@ -4,6 +4,11 @@ export { candidatesService } from "./candidates.service";
 export { requestsService } from "./requests.service";
 export { claimsService } from "./claims.service";
 export { alertsService, coverageAlertsService } from "./alerts.service";
+export {
+  coverageService,
+  type CategoryCoverageItem,
+  type OpportunityRow,
+} from "./coverage.service";
 export { invoicesService } from "./invoices.service";
 export { eventsService } from "./events.service";
 export { photosService } from "./photos.service";

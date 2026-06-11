@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02, 03 et 04 terminées.**  
+**État du projet : étapes 01, 02, 03, 04 et 05 terminées.**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -14,7 +14,7 @@ Le code existant est la source de vérité — réutiliser composants, services 
 | Frontend | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Supabase (PostgreSQL, Auth, Storage) |
 | Emails | Resend |
-| Notifications | Telegram (lib prête, usage métier à venir) |
+| Notifications | Telegram (alertes couverture, si configuré + activé en admin) |
 | Géocodage | API BAN (adresse.data.gouv.fr) |
 
 ---
@@ -36,12 +36,12 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Oui | URL du projet Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Oui | Clé publique Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Oui | Opérations serveur (actions, matching, workflow pro, admin) |
-| `NEXT_PUBLIC_APP_URL` | Oui | URL de l'app (liens emails pro, ex. `http://localhost:3000`) |
-| `RESEND_API_KEY` | Recommandé | Envoi des emails transactionnels |
-| `RESEND_FROM_EMAIL` | Recommandé | Expéditeur par défaut (surchargeable dans Paramètres admin) |
+| `NEXT_PUBLIC_APP_URL` | Oui | URL de l'app (liens emails pro, liens dans alertes, ex. `http://localhost:3000`) |
+| `RESEND_API_KEY` | Recommandé | Envoi des emails transactionnels et alertes admin |
+| `RESEND_FROM_EMAIL` | Recommandé | Expéditeur par défaut des emails pro (surchargeable dans Paramètres admin pour les alertes) |
 | `CRON_SECRET` | Optionnel | Sécurise `GET /api/cron/reminders` |
-| `TELEGRAM_BOT_TOKEN` | Optionnel | Alertes Telegram (étape future) |
-| `TELEGRAM_CHAT_ID` | Optionnel | Canal Telegram (étape future) |
+| `TELEGRAM_BOT_TOKEN` | Optionnel | Bot Telegram pour les alertes couverture |
+| `TELEGRAM_CHAT_ID` | Optionnel | Canal / chat Telegram de destination |
 
 ### Base de données
 
@@ -116,13 +116,6 @@ Fichiers (dans l'ordre) :
 - **Actions serveur** : `app/actions/admin.ts` (mutations admin + revalidation des pages)
 - **Services** : `dashboard.service.ts`, `settings.service.ts` (+ extensions des services existants)
 
-**Non implémenté dans cette étape :**
-
-- `/admin/opportunites` et `/admin/facturation` restent des coquilles UI
-- Authentification admin (accès `/admin` non protégé par login)
-- Envoi Telegram et création automatique d'alertes métier non branchés
-- L'email expéditeur en base (`app_settings`) n'est pas encore utilisé par `email.service` (Resend utilise toujours `RESEND_FROM_EMAIL` / défaut)
-
 **Fichiers clés :**
 
 - `app/admin/*/page.tsx`
@@ -130,6 +123,42 @@ Fichiers (dans l'ordre) :
 - `app/actions/admin.ts`
 - `services/dashboard.service.ts`, `settings.service.ts`
 - `utils/admin-labels.ts`, `utils/datetime.ts`
+
+### Étape 05 — Alertes et opportunités ✅
+
+- **Génération automatique** des alertes et agrégats couverture à chaque nouvelle demande
+- **Niveaux de couverture** (selon le nombre de pros éligibles au matching) :
+  - Rouge : aucun professionnel
+  - Orange : 1 ou 2 professionnels
+  - Vert : 3 professionnels ou plus
+- **Statut `no_match`** si aucun pro trouvé à la création de demande
+- **Alerte « Aucune réponse »** (orange) lors du rappel cron 30 min si la demande est toujours en attente
+- **Mise à jour des opportunités** : compteur de demandes satisfaites à chaque prise de mission
+- **Notifications** (alertes rouge/orange uniquement) :
+  - Dashboard (alertes importantes + activité récente)
+  - Telegram (si `TELEGRAM_*` configuré **et** flag activé dans Paramètres)
+  - Email admin (vers l'email expéditeur des Paramètres, si Resend configuré)
+- **Page Alertes** enrichie : bouton « Voir détails » (demande liée, code mission, statut)
+- **Page Opportunités** (`/admin/opportunites`) :
+  - Grille couverture par catégorie (nombre de pros actifs, badge couleur)
+  - Tableau ville × catégorie : demandes, satisfaites, taux, couverture, priorité, résolution
+
+**Non implémenté dans cette étape :**
+
+- Page **Facturation** (`/admin/facturation`) — coquille UI
+- Authentification admin (accès `/admin` non protégé par login)
+- Extension de recherche (`search_extended`) si aucun pro trouvé
+- Les emails transactionnels pro utilisent toujours `RESEND_FROM_EMAIL` / défaut Resend (pas `app_settings.sender_email`)
+- Statut `completed` / clôture de mission côté pro ou admin
+
+**Fichiers clés :**
+
+- `services/coverage.service.ts`, `services/alerts.service.ts` (extensions)
+- `utils/coverage.ts`
+- `emails/templates/coverage-alert.ts`
+- `components/admin/opportunities-panel.tsx`, `category-coverage-grid.tsx`
+- `components/admin/alerts-panel.tsx` (détail alerte)
+- Branchements dans `services/pro-workflow.service.ts`, `app/actions/create-request.ts`
 
 ---
 
@@ -164,9 +193,9 @@ Fichiers (dans l'ordre) :
 | `/admin/demandes` | ✅ Liste + détail demande |
 | `/admin/professionnels` | ✅ Liste, fiche, modification, suspension |
 | `/admin/candidats` | ✅ Liste, validation / refus / suspension |
-| `/admin/alertes` | ✅ Liste filtrable + résolution |
+| `/admin/alertes` | ✅ Liste filtrable, détail, résolution |
+| `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
 | `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
-| `/admin/opportunites` | ❌ Coquille UI |
 | `/admin/facturation` | ❌ Coquille UI |
 | Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
 
@@ -174,7 +203,7 @@ Fichiers (dans l'ordre) :
 
 | Route | Rôle |
 |-------|------|
-| `GET /api/cron/reminders` | Envoie les rappels 30 min (header `Authorization: Bearer CRON_SECRET` si défini) |
+| `GET /api/cron/reminders` | Rappels 30 min + alerte « Aucune réponse » (header `Authorization: Bearer CRON_SECRET` si défini) |
 
 ---
 
@@ -187,13 +216,21 @@ Demande créée + code mission généré
         ↓
 Matching → pros éligibles (catégorie + distance ≤ rayon)
         ↓
-Email « Nouvelle demande » + lien /pro/[token] par pro
+Analyse couverture → alertes + opportunités mises à jour
+        ↓
+(si 0 pro) statut no_match + alerte rouge
+        ↓
+(si 1–2 pros) alerte orange
+        ↓
+(si rouge/orange) notifications dashboard + Telegram/email (si configuré)
+        ↓
+Email « Nouvelle demande » + lien /pro/[token] par pro (si matching > 0)
         ↓
 Pro ouvre le lien → voit nom/tél, pas l'adresse
         ↓
 Pro appelle le client → client donne le code mission
         ↓
-Pro saisit le code → mission « claimed »
+Pro saisit le code → mission « claimed » → compteur « satisfaites » mis à jour
         ↓
 Adresse dévoilée + email « Mission confirmée »
         ↓
@@ -201,9 +238,9 @@ Autres pros désactivés + email « Mission déjà attribuée »
         ↓
 (option) Pro libère → demande repending + emails « Demande disponible »
         ↓
-(option) Cron 30 min → email « Rappel » si toujours pending
+(option) Cron 30 min → email « Rappel » + alerte « Aucune réponse » si toujours pending
         ↓
-Admin pilote via /admin (demandes, pros, candidats, alertes, paramètres)
+Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, paramètres)
 ```
 
 ---
@@ -231,7 +268,9 @@ components/
 services/                     → Couche données + orchestration métier
   matching.service.ts         → Recherche pros par catégorie/distance
   pro-links.service.ts        → Liens sécurisés /pro/[token]
-  pro-workflow.service.ts     → Matching, claim, release, emails, rappels
+  pro-workflow.service.ts     → Matching, claim, release, emails, rappels, couverture
+  coverage.service.ts         → Alertes auto, opportunités, notifications couverture
+  alerts.service.ts           → CRUD alertes unitaires et coverage_alerts
   email.service.ts            → Envoi via Resend
   dashboard.service.ts        → Stats et activité admin
   settings.service.ts         → Paramètres app_settings
@@ -247,13 +286,15 @@ lib/
   telegram.ts                 → Notifications Telegram
 
 emails/templates/             → Templates HTML transactionnels
+  pro-workflow.ts             → Emails pro
+  coverage-alert.ts           → Email alerte couverture admin
 
 hooks/                        → useCategorySearch, usePhotoUpload, useAddressAutocomplete
 
 types/                        → database.ts (schéma), index.ts (réexports + SupabaseDbClient)
 
 utils/                        → validation, geocoding, distance, mission-code, phone,
-                              admin-labels, datetime…
+                              coverage, admin-labels, datetime…
 
 supabase/migrations/          → Migrations SQL
 public/                       → Assets statiques
@@ -268,19 +309,29 @@ public/                       → Assets statiques
 | `categories` | Métiers (Plombier, Électricien…) |
 | `professionals` | Pros actifs (catégories[], rayon_km, lat/lon) |
 | `candidate_professionals` | Candidatures pro (validation admin) |
-| `requests` | Demandes clients (statut, code mission, claimed_by) |
+| `requests` | Demandes clients (statut, code mission, claimed_by, professional_count) |
 | `request_photos` | Photos liées à une demande |
 | `request_professional_links` | Token sécurisé par demande/pro + distance |
 | `claims` | Historique prises / libérations |
 | `request_events` | Journal d'événements |
 | `invoices` | Facturation mensuelle par pro (montant = missions × prix paramétré) |
-| `alerts` | Alertes unitaires (consultables et résolvables en admin) |
-| `coverage_alerts` | Alertes agrégées couverture (affichées sur le dashboard, pas de page dédiée) |
+| `alerts` | Alertes unitaires par événement (créées automatiquement, résolvables en admin) |
+| `coverage_alerts` | Agrégats couverture par ville + catégorie (page Opportunités + dashboard) |
 | `app_settings` | Paramètres applicatifs (prix mission, email expéditeur, flag Telegram) |
 
 ### Statuts demande (`request_status`)
 
 `pending` → `claimed` → `completed` | `cancelled` | `no_match`
+
+(`no_match` : aucun pro trouvé au matching ; `completed` : prévu schéma, pas encore exposé dans l'UI)
+
+### Niveaux d'alerte (`alert_level`)
+
+| Niveau | Règle (pros éligibles au matching) |
+|--------|-------------------------------------|
+| `red` | 0 professionnel |
+| `orange` | 1 ou 2 professionnels |
+| `green` | 3 professionnels ou plus |
 
 ### Événements (`request_event_type`)
 
@@ -290,15 +341,16 @@ public/                       → Assets statiques
 
 ## Emails (Resend)
 
-| Template ID | Déclencheur |
-|-------------|-------------|
+| Template | Déclencheur |
+|----------|-------------|
 | `new-request` | Demande créée, matching OK |
 | `mission-confirmed` | Code mission validé |
 | `mission-taken` | Autre pro notifié après prise |
 | `demand-available` | Mission libérée |
 | `reminder-30min` | Cron 30 min, demande toujours pending |
+| `coverage-alert` | Alerte couverture rouge/orange (email vers expéditeur Paramètres) |
 
-Templates HTML : `emails/templates/pro-workflow.ts`  
+Templates HTML : `emails/templates/pro-workflow.ts`, `emails/templates/coverage-alert.ts`  
 Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de crash).
 
 ---
@@ -315,17 +367,15 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 8. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
 9. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
 10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
+11. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
 
 ---
 
 ## Prochaines étapes (non implémentées)
 
-- Page **Opportunités** (`/admin/opportunites`) — tableau couverture ville/catégorie
 - Page **Facturation** (`/admin/facturation`) — suivi factures, envoi, paiement
 - Authentification admin (Supabase Auth + protection `/admin`)
-- Génération automatique des alertes et opportunités (couverture géographique)
-- Notifications Telegram branchées au métier
-- Utilisation de l'email expéditeur stocké en `app_settings` dans `email.service`
+- Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro
 - Extension de recherche (`search_extended`) si aucun pro trouvé
 - Statut `completed` / clôture de mission côté pro ou admin
 

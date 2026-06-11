@@ -1,3 +1,5 @@
+export { renderCoverageAlertEmail, type CoverageAlertEmailData } from "./coverage-alert";
+
 export {
   renderDemandAvailableEmail,
   renderMissionConfirmedEmail,

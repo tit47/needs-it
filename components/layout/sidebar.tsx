@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTransition } from "react";
 import {
   AlertTriangle,
   ClipboardList,
   FileText,
   LayoutDashboard,
+  LogOut,
   MapPin,
   Settings,
   UserCheck,
   Users,
   X,
 } from "lucide-react";
+import { signOutAdminAction } from "@/app/actions/auth";
 import { AppLogo } from "@/components/layout/app-logo";
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -39,6 +43,11 @@ export interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const [isSigningOut, startSignOut] = useTransition();
+
+  const handleSignOut = () => {
+    startSignOut(() => signOutAdminAction());
+  };
 
   const content = (
     <>
@@ -51,7 +60,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </p>
       </div>
 
-      <nav className="flex flex-col gap-1 p-4">
+      <nav className="flex flex-1 flex-col gap-1 p-4">
         <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] lg:hidden">
           Administration
         </p>
@@ -77,12 +86,29 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           );
         })}
       </nav>
+
+      <div className="border-t border-[var(--color-border)] p-4">
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full justify-start gap-3 text-[var(--color-card-foreground)]"
+          disabled={isSigningOut}
+          onClick={handleSignOut}
+        >
+          {isSigningOut ? (
+            <Spinner className="h-5 w-5" />
+          ) : (
+            <LogOut className="h-5 w-5 shrink-0" />
+          )}
+          Déconnexion
+        </Button>
+      </div>
     </>
   );
 
   return (
     <>
-      <aside className="hidden w-64 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-card)] lg:block">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-card)] lg:flex">
         {content}
       </aside>
 

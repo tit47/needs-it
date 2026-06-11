@@ -20,6 +20,7 @@ import type {
   RequestEvent,
   RequestPhoto,
 } from "@/types";
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { isValidEmail } from "@/utils/validation";
 
 function revalidateAdmin() {
@@ -34,6 +35,9 @@ function revalidateAdmin() {
 }
 
 export async function markInvoiceSentAction(id: string, invoiceSent: boolean) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await invoicesService.markInvoiceSent(
     client,
@@ -50,6 +54,9 @@ export async function markInvoiceSentAction(id: string, invoiceSent: boolean) {
 }
 
 export async function markInvoicePaidAction(id: string, paid: boolean) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await invoicesService.markPaid(client, id, paid);
 
@@ -62,6 +69,9 @@ export async function markInvoicePaidAction(id: string, paid: boolean) {
 }
 
 export async function suspendProfessionalAction(id: string, active: boolean) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await professionalsService.updateStatus(client, id, active);
 
@@ -86,6 +96,9 @@ export async function updateProfessionalAction(
     radius_km: number;
   }
 ) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await professionalsService.update(client, id, data);
 
@@ -101,6 +114,9 @@ export async function updateCandidateStatusAction(
   id: string,
   status: CandidateStatus
 ) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
 
   if (status === "accepted") {
@@ -120,6 +136,9 @@ export async function updateCandidateStatusAction(
 }
 
 export async function resolveAlertAction(id: string) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await alertsService.resolve(client, id);
 
@@ -132,6 +151,9 @@ export async function resolveAlertAction(id: string) {
 }
 
 export async function resolveCoverageAlertAction(id: string) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await coverageAlertsService.resolve(client, id);
 
@@ -161,6 +183,9 @@ export async function getAlertDetailAction(id: string): Promise<
   | { success: true; data: AlertDetail }
   | { success: false; error: string }
 > {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { data: alert, error } = await alertsService.getById(client, id);
 
@@ -198,6 +223,9 @@ export async function getAlertDetailAction(id: string): Promise<
 }
 
 export async function updateMissionPriceAction(priceEur: number) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   if (!Number.isFinite(priceEur) || priceEur <= 0) {
     return { success: false, error: "Le prix doit être supérieur à 0." };
   }
@@ -218,6 +246,9 @@ export async function updateMissionPriceAction(priceEur: number) {
 }
 
 export async function updateSenderEmailAction(senderEmail: string) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const trimmed = senderEmail.trim();
 
   if (!trimmed) {
@@ -244,6 +275,9 @@ export async function updateSenderEmailAction(senderEmail: string) {
 }
 
 export async function updateTelegramNotificationsAction(enabled: boolean) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await settingsService.set(
     client,
@@ -260,6 +294,9 @@ export async function updateTelegramNotificationsAction(enabled: boolean) {
 }
 
 export async function toggleCategoryAction(id: string, active: boolean) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { error } = await categoriesService.setActive(client, id, active);
 
@@ -272,6 +309,9 @@ export async function toggleCategoryAction(id: string, active: boolean) {
 }
 
 export async function createCategoryAction(name: string) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const trimmed = name.trim();
 
   if (!trimmed) {
@@ -300,6 +340,9 @@ export async function getRequestDetailAction(id: string): Promise<
   | { success: true; data: AdminRequestDetail }
   | { success: false; error: string }
 > {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { data, error } = await requestsService.getById(client, id);
 
@@ -328,6 +371,9 @@ export async function getProfessionalDetailAction(id: string): Promise<
     }
   | { success: false; error: string }
 > {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
   const client = createAdminClient();
   const { data: professional, error } = await professionalsService.getById(
     client,

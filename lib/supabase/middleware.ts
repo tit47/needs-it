@@ -1,10 +1,11 @@
-import { createBrowserClient, createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
+const ADMIN_LOGIN_PATH = "/admin/login";
+
 /**
- * Rafraîchit la session Supabase Auth pour l'administrateur.
- * À brancher sur les routes /admin/* lors de l'étape authentification.
+ * Rafraîchit la session Supabase Auth et protège les routes /admin/* (sauf login).
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -30,9 +31,26 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const isLoginPage = pathname === ADMIN_LOGIN_PATH;
+
+  if (!user && !isLoginPage) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = ADMIN_LOGIN_PATH;
+    loginUrl.search = "";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (user && isLoginPage) {
+    const adminUrl = request.nextUrl.clone();
+    adminUrl.pathname = "/admin";
+    adminUrl.search = "";
+    return NextResponse.redirect(adminUrl);
+  }
 
   return supabaseResponse;
 }
-
-export { createBrowserClient, createServerClient };

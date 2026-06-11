@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02, 03, 04, 05, 06, 07 et 08 terminées.**  
+**État du projet : étapes 01 à 08 terminées + authentification admin (étape supplémentaire).**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -70,6 +70,16 @@ Pour recopier depuis le dossier `Images` du projet :
 ```bash
 node scripts/copy-brand-assets.js
 ```
+
+### Compte administrateur (Supabase Auth)
+
+L'accès au back-office nécessite un utilisateur **Supabase Auth** (email + mot de passe) :
+
+1. Dans le dashboard Supabase : **Authentication → Providers** → activer **Email** (mot de passe).
+2. **Authentication → Users** → créer un utilisateur admin (l'app ne propose pas d'inscription).
+3. Se connecter sur `/admin/login`.
+
+Tout utilisateur Auth valide peut accéder à l'admin (pas de liste blanche d'emails dans l'app pour l'instant).
 
 ---
 
@@ -295,7 +305,6 @@ Consolidation et qualité globale. **Aucune nouvelle fonctionnalité métier** �
 
 **Non implémenté dans cette étape** :
 
-- Authentification admin (inchangée — voir limites connues)
 - Nouvelles pages, parcours ou règles métier
 - Tests automatiques
 - Audit des emails dans tous les clients mail
@@ -308,6 +317,41 @@ Consolidation et qualité globale. **Aucune nouvelle fonctionnalité métier** �
 - `components/ui/input.tsx`, `textarea.tsx`, `table.tsx` (`TableEmpty`)
 - `components/client/*`, `components/pro/*`, `components/admin/*` (retours utilisateur unifiés)
 - `utils/validation.ts` (`isValidEmail`)
+
+### Étape supplémentaire — Authentification admin ✅
+
+Protection du back-office via **Supabase Auth**. **Aucune modification des workflows métier** (client, pro, matching, facturation, etc.).
+
+**Fonctionnement** :
+
+- Page `/admin/login` — formulaire email + mot de passe (`AdminLoginForm`, design system étapes 07–08)
+- **Middleware** (`middleware.ts` + `lib/supabase/middleware.ts`) sur `/admin` et `/admin/*` :
+  - non connecté → redirection vers `/admin/login`
+  - déjà connecté sur `/admin/login` → redirection vers `/admin`
+- **Déconnexion** — bouton dans la sidebar admin (`signOutAdminAction`)
+- **Server actions admin** (`app/actions/admin.ts`) — chaque mutation vérifie la session via `requireAdminSession()` (`lib/auth/admin-session.ts`)
+
+**Structure des routes admin** :
+
+| Chemin | Layout | Accès |
+|--------|--------|-------|
+| `app/admin/login/page.tsx` | Racine admin (pas de sidebar) | Public |
+| `app/admin/(dashboard)/*` | `AdminShell` (sidebar + navbar) | Session requise |
+
+**Fichiers clés** :
+
+- `app/admin/login/page.tsx`, `components/admin/admin-login-form.tsx`
+- `app/admin/(dashboard)/layout.tsx`, `app/admin/layout.tsx` (racine sans shell)
+- `app/actions/auth.ts` (`signInAdminAction`, `signOutAdminAction`)
+- `lib/auth/admin-session.ts`, `lib/supabase/middleware.ts`, `middleware.ts`
+- `components/layout/sidebar.tsx` (bouton Déconnexion)
+
+**Non implémenté** :
+
+- Création de comptes admin depuis l'app
+- Liste blanche d'emails admin
+- Rôles / permissions granulaires
+- Réinitialisation de mot de passe dans l'UI
 
 ---
 
@@ -348,8 +392,10 @@ Consolidation et qualité globale. **Aucune nouvelle fonctionnalité métier** �
 | `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
 | `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
 | `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée / annuler paiement |
+| `/admin/login` | ✅ Connexion Supabase Auth (email + mot de passe) |
 | Interface harmonisée (design system étapes 07–08) | ✅ |
-| Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
+| Authentification admin | ✅ Session Supabase Auth + middleware + protection des server actions |
+| Déconnexion | ✅ Bouton dans la sidebar admin |
 
 ### API
 
@@ -392,6 +438,8 @@ Autres pros désactivés + email « Mission déjà attribuée »
         ↓
 (option) Cron 30 min → email « Rappel » + alerte « Aucune réponse » si toujours pending
         ↓
+Admin se connecte sur /admin/login (Supabase Auth)
+        ↓
 Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, facturation, paramètres)
 ```
 
@@ -407,10 +455,17 @@ app/
   actions/
     create-request.ts         → Création demande (server action)
     pro-workflow.ts           → Prise / libération mission (server actions)
-    admin.ts                  → Actions back-office (server actions)
+    admin.ts                  → Actions back-office (session admin requise)
+    auth.ts                   → Connexion / déconnexion admin
   pro/[token]/page.tsx        → Page professionnelle
   api/cron/reminders/route.ts → Rappels 30 min
-  admin/                      → Back-office admin
+  admin/
+    login/page.tsx            → Connexion admin (publique)
+    (dashboard)/              → Pages admin protégées (AdminShell)
+      layout.tsx              → Shell sidebar + navbar
+      page.tsx, demandes/, …  → Dashboard et sections
+
+middleware.ts                 → Protection /admin/* (redirection login)
 
 components/
   client/                     → Parcours client (formulaire, confirmation…)
@@ -437,6 +492,8 @@ services/                     → Couche données + orchestration métier
   …
 
 lib/
+  auth/
+    admin-session.ts          → requireAdminSession() pour server actions admin
   supabase/                   → client, server, admin, middleware, storage
   resend.ts                   → Client Resend
   telegram.ts                 → Notifications Telegram
@@ -527,23 +584,24 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 1. **Mobile first** — l'expérience pro et client est pensée téléphone d'abord ; l'admin est utilisable sur mobile mais optimisé desktop.
 2. **Pas de compte pro** — accès uniquement via lien sécurisé reçu par email.
 3. **Le téléphone + code mission** garantissent un échange réel avant dévoilement de l'adresse.
-4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client.
-5. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Messages utilisateur : `AlertBanner` (pas de `text-red-500` ad hoc). Chargements : `Spinner` / `LoadingState`. Erreurs de champ : `FieldError`. Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
-6. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
-7. **Historique** — tracer les actions significatives via `eventsService.log()`.
-8. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
-9. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
-10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
-11. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
-12. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
-13. **Design (étapes 07–08)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field`, `.dropdown-panel` et `FieldError` pour les erreurs. Retours globaux : `AlertBanner`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
-14. **Accessibilité** — `SkipLink` sur les layouts principaux ; champs avec label + `aria-invalid` / `aria-describedby` quand pertinent ; listbox avec `aria-label` et `aria-selected` sur les options.
+4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client. Les actions dans `app/actions/admin.ts` appellent `requireAdminSession()` en premier ; connexion/déconnexion via `app/actions/auth.ts`.
+5. **Admin protégé** — routes `/admin/*` (sauf `/admin/login`) via `middleware.ts` ; ne pas exposer le shell admin (`AdminShell`) sur la page de login (groupe `(dashboard)`).
+6. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Messages utilisateur : `AlertBanner` (pas de `text-red-500` ad hoc). Chargements : `Spinner` / `LoadingState`. Erreurs de champ : `FieldError`. Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
+7. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
+8. **Historique** — tracer les actions significatives via `eventsService.log()`.
+9. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
+10. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
+11. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
+12. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
+13. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
+14. **Design (étapes 07–08)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field`, `.dropdown-panel` et `FieldError` pour les erreurs. Retours globaux : `AlertBanner`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
+15. **Accessibilité** — `SkipLink` sur les layouts principaux ; champs avec label + `aria-invalid` / `aria-describedby` quand pertinent ; listbox avec `aria-label` et `aria-selected` sur les options.
 
 ---
 
 ## Limites connues (V1)
 
-- **Authentification admin** — accès `/admin` non protégé par login (`middleware.ts` rafraîchit la session Supabase Auth mais ne redirige pas vers un login)
+- **Comptes admin** — création manuelle dans Supabase Auth uniquement ; pas d'inscription, pas de réinitialisation mot de passe dans l'app ; tout utilisateur Auth valide peut accéder à l'admin (pas de liste blanche)
 - **Emails pro** — utilisent `RESEND_FROM_EMAIL` / défaut Resend, pas `app_settings.sender_email`
 - **Extension de recherche** — pas de `search_extended` si aucun pro trouvé
 - **Clôture de mission** — statut `completed` prévu en schéma, pas encore exposé dans l'UI pro ou admin
@@ -555,7 +613,8 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 
 ## Prochaines étapes (non implémentées)
 
-- Authentification admin (Supabase Auth + protection `/admin`)
+- Liste blanche d'emails admin, rôles ou permissions granulaires
+- Réinitialisation / changement de mot de passe admin dans l'UI
 - Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro
 - Extension de recherche (`search_extended`) si aucun pro trouvé
 - Statut `completed` / clôture de mission côté pro ou admin

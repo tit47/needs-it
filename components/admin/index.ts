@@ -1,3 +1,4 @@
+export { AdminLoginForm } from "./admin-login-form";
 export { AdminPageHeader } from "./admin-page-header";
 export { ActivityFeed } from "./activity-feed";
 export { AlertsPanel } from "./alerts-panel";

@@ -1,5 +1,6 @@
 import type { AlertLevel, CandidateStatus, RequestEventType, RequestStatus } from "@/types";
 import type { BadgeProps } from "@/components/ui/badge";
+import type { InvoiceStatus } from "@/utils/invoices";
 
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   pending: "En attente",
@@ -20,6 +21,12 @@ export const ALERT_LEVEL_LABELS: Record<AlertLevel, string> = {
   red: "Rouge",
   orange: "Orange",
   green: "Vert",
+};
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  not_sent: "Non envoyée",
+  sent: "Envoyée",
+  paid: "Payée",
 };
 
 export function requestStatusVariant(
@@ -64,6 +71,21 @@ export function candidateStatusVariant(
       return "warning";
     case "refused":
     case "suspended":
+      return "danger";
+    default:
+      return "default";
+  }
+}
+
+export function invoiceStatusVariant(
+  status: InvoiceStatus
+): NonNullable<BadgeProps["variant"]> {
+  switch (status) {
+    case "paid":
+      return "success";
+    case "sent":
+      return "warning";
+    case "not_sent":
       return "danger";
     default:
       return "default";

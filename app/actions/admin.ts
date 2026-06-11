@@ -7,6 +7,7 @@ import {
   candidatesService,
   categoriesService,
   coverageAlertsService,
+  invoicesService,
   professionalsService,
   requestsService,
   settingsService,
@@ -28,6 +29,35 @@ function revalidateAdmin() {
   revalidatePath("/admin/alertes");
   revalidatePath("/admin/opportunites");
   revalidatePath("/admin/parametres");
+  revalidatePath("/admin/facturation");
+}
+
+export async function markInvoiceSentAction(id: string, invoiceSent: boolean) {
+  const client = createAdminClient();
+  const { error } = await invoicesService.markInvoiceSent(
+    client,
+    id,
+    invoiceSent
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function markInvoicePaidAction(id: string, paid: boolean) {
+  const client = createAdminClient();
+  const { error } = await invoicesService.markPaid(client, id, paid);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
 }
 
 export async function suspendProfessionalAction(id: string, active: boolean) {
@@ -286,6 +316,9 @@ export async function getProfessionalDetailAction(id: string): Promise<
         history: NonNullable<
           Awaited<ReturnType<typeof professionalsService.getClaimHistory>>["data"]
         >;
+        paymentHistory: NonNullable<
+          Awaited<ReturnType<typeof invoicesService.listByProfessional>>["data"]
+        >;
       };
     }
   | { success: false; error: string }
@@ -303,10 +336,12 @@ export async function getProfessionalDetailAction(id: string): Promise<
     };
   }
 
-  const [unpaidAmount, { data: history }] = await Promise.all([
-    professionalsService.getUnpaidAmount(client, id),
-    professionalsService.getClaimHistory(client, id),
-  ]);
+  const [unpaidAmount, { data: history }, { data: paymentHistory }] =
+    await Promise.all([
+      professionalsService.getUnpaidAmount(client, id),
+      professionalsService.getClaimHistory(client, id),
+      invoicesService.listByProfessional(client, id),
+    ]);
 
   return {
     success: true,
@@ -314,6 +349,7 @@ export async function getProfessionalDetailAction(id: string): Promise<
       professional,
       unpaidAmount,
       history: history ?? [],
+      paymentHistory: paymentHistory ?? [],
     },
   };
 }

@@ -1,41 +1,27 @@
-import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { AdminPageHeader, InvoicesPanel } from "@/components/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { invoicesService, settingsService } from "@/services";
+import type { InvoiceWithProfessional } from "@/services/invoices.service";
 
-export default function FacturationPage() {
+export default async function FacturationPage() {
+  const client = createAdminClient();
+
+  const [{ data: invoices }, missionPriceEur] = await Promise.all([
+    invoicesService.list(client),
+    settingsService.getMissionPriceEur(client),
+  ]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
-          Facturation
-        </h1>
-        <p className="mt-1 text-sm opacity-80">
-          Suivi mensuel des missions et paiements — à implémenter.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Facturation"
+        description="Suivi mensuel des missions et paiements — facturation manuelle."
+      />
 
-      <Card padding="none">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Professionnel</TableHead>
-              <TableHead>Missions</TableHead>
-              <TableHead>Montant dû</TableHead>
-              <TableHead>Facture envoyée</TableHead>
-              <TableHead>Payée</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableEmpty message="Aucune facture pour le moment." />
-          </TableBody>
-        </Table>
-      </Card>
+      <InvoicesPanel
+        invoices={(invoices ?? []) as InvoiceWithProfessional[]}
+        missionPriceEur={missionPriceEur}
+      />
     </div>
   );
 }

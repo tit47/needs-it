@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02, 03, 04 et 05 terminées.**  
+**État du projet : étapes 01, 02, 03, 04, 05 et 06 terminées.**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -109,7 +109,7 @@ Fichiers (dans l'ordre) :
 
 - **Dashboard** (`/admin`) : stats du jour, activité récente, alertes importantes (rouge/orange)
 - **Demandes** : tableau + détail (description, photos, client, distance, historique)
-- **Professionnels** : tableau, modification, suspension/réactivation, fiche (montant dû, historique missions)
+- **Professionnels** : tableau, modification, suspension/réactivation, fiche (montant dû, historique missions, historique paiements — voir étape 06)
 - **Candidats** : validation (crée un pro), refus, suspension
 - **Alertes** : liste avec filtres (ville, catégorie, dates, résolu) + marquer comme résolu
 - **Paramètres** : prix mission, email expéditeur, flag Telegram, gestion des catégories
@@ -145,7 +145,6 @@ Fichiers (dans l'ordre) :
 
 **Non implémenté dans cette étape :**
 
-- Page **Facturation** (`/admin/facturation`) — coquille UI
 - Authentification admin (accès `/admin` non protégé par login)
 - Extension de recherche (`search_extended`) si aucun pro trouvé
 - Les emails transactionnels pro utilisent toujours `RESEND_FROM_EMAIL` / défaut Resend (pas `app_settings.sender_email`)
@@ -159,6 +158,36 @@ Fichiers (dans l'ordre) :
 - `components/admin/opportunities-panel.tsx`, `category-coverage-grid.tsx`
 - `components/admin/alerts-panel.tsx` (détail alerte)
 - Branchements dans `services/pro-workflow.service.ts`, `app/actions/create-request.ts`
+
+### Étape 06 — Facturation ✅
+
+- **Principe V1** : chaque mission validée (prise via code) génère un montant dû par le professionnel ; le prix unitaire est celui des **Paramètres** (`mission_price_eur`, 5 € par défaut)
+- **Enregistrement automatique** à la prise de mission : incrément mensuel dans `invoices` (déjà branché à l'étape 03 via `prepareMissionBilling`)
+- **Facturation manuelle** : pas d'envoi automatique de facture ni de paiement en ligne
+- **Page Facturation** (`/admin/facturation`) :
+  - Tableau : professionnel, mois, missions, montant dû, état, facture envoyée, payée
+  - Filtres : mois, payé / non payé, nom du professionnel
+  - Actions : marquer facture envoyée, marquer payée, annuler paiement
+- **États de facture** : non envoyée → envoyée → payée
+- **Fiche professionnel** enrichie : historique des paiements (factures mensuelles avec état)
+
+**Non implémenté dans cette étape :**
+
+- Paiement automatique, Stripe, abonnements, envoi automatique de factures
+- Authentification admin (accès `/admin` non protégé par login)
+- Extension de recherche (`search_extended`) si aucun pro trouvé
+- Les emails transactionnels pro utilisent toujours `RESEND_FROM_EMAIL` / défaut Resend (pas `app_settings.sender_email`)
+- Statut `completed` / clôture de mission côté pro ou admin
+
+**Fichiers clés :**
+
+- `app/admin/facturation/page.tsx`
+- `components/admin/invoices-panel.tsx`
+- `services/invoices.service.ts`
+- `utils/invoices.ts`
+- `app/actions/admin.ts` (`markInvoiceSentAction`, `markInvoicePaidAction`)
+- `components/admin/professionals-panel.tsx` (historique paiements)
+- `components/admin/status-badges.tsx` (`InvoiceStatusBadge`)
 
 ---
 
@@ -191,12 +220,12 @@ Fichiers (dans l'ordre) :
 |-------|--------|
 | `/admin` | ✅ Dashboard (stats, activité, alertes importantes) |
 | `/admin/demandes` | ✅ Liste + détail demande |
-| `/admin/professionnels` | ✅ Liste, fiche, modification, suspension |
+| `/admin/professionnels` | ✅ Liste, fiche (missions + paiements), modification, suspension |
 | `/admin/candidats` | ✅ Liste, validation / refus / suspension |
 | `/admin/alertes` | ✅ Liste filtrable, détail, résolution |
 | `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
 | `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
-| `/admin/facturation` | ❌ Coquille UI |
+| `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée |
 | Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
 
 ### API
@@ -230,7 +259,7 @@ Pro ouvre le lien → voit nom/tél, pas l'adresse
         ↓
 Pro appelle le client → client donne le code mission
         ↓
-Pro saisit le code → mission « claimed » → compteur « satisfaites » mis à jour
+Pro saisit le code → mission « claimed » → compteur « satisfaites » + facture mensuelle mise à jour
         ↓
 Adresse dévoilée + email « Mission confirmée »
         ↓
@@ -240,7 +269,7 @@ Autres pros désactivés + email « Mission déjà attribuée »
         ↓
 (option) Cron 30 min → email « Rappel » + alerte « Aucune réponse » si toujours pending
         ↓
-Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, paramètres)
+Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, facturation, paramètres)
 ```
 
 ---
@@ -274,6 +303,7 @@ services/                     → Couche données + orchestration métier
   email.service.ts            → Envoi via Resend
   dashboard.service.ts        → Stats et activité admin
   settings.service.ts         → Paramètres app_settings
+  invoices.service.ts         → Facturation mensuelle (liste, statuts envoyée/payée)
   requests.service.ts         → Demandes
   claims.service.ts           → Prises de mission
   events.service.ts           → Historique request_events
@@ -294,7 +324,7 @@ hooks/                        → useCategorySearch, usePhotoUpload, useAddressA
 types/                        → database.ts (schéma), index.ts (réexports + SupabaseDbClient)
 
 utils/                        → validation, geocoding, distance, mission-code, phone,
-                              coverage, admin-labels, datetime…
+                              coverage, invoices, admin-labels, datetime…
 
 supabase/migrations/          → Migrations SQL
 public/                       → Assets statiques
@@ -314,7 +344,7 @@ public/                       → Assets statiques
 | `request_professional_links` | Token sécurisé par demande/pro + distance |
 | `claims` | Historique prises / libérations |
 | `request_events` | Journal d'événements |
-| `invoices` | Facturation mensuelle par pro (montant = missions × prix paramétré) |
+| `invoices` | Facturation mensuelle par pro (`mission_count`, `amount`, `invoice_sent`, `paid`) |
 | `alerts` | Alertes unitaires par événement (créées automatiquement, résolvables en admin) |
 | `coverage_alerts` | Agrégats couverture par ville + catégorie (page Opportunités + dashboard) |
 | `app_settings` | Paramètres applicatifs (prix mission, email expéditeur, flag Telegram) |
@@ -336,6 +366,16 @@ public/                       → Assets statiques
 ### Événements (`request_event_type`)
 
 `request_created`, `email_sent`, `link_opened`, `mission_claimed`, `mission_released`, `mission_completed`
+
+### États de facture (V1, suivi manuel)
+
+| État | Condition en base |
+|------|-------------------|
+| Non envoyée | `invoice_sent = false` et `paid = false` |
+| Envoyée | `invoice_sent = true` et `paid = false` |
+| Payée | `paid = true` (force `invoice_sent = true`) |
+
+Une ligne `invoices` par couple `(professional_id, month)` ; le montant = `mission_count × mission_price_eur`.
 
 ---
 
@@ -368,12 +408,12 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 9. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
 10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
 11. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
+12. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
 
 ---
 
 ## Prochaines étapes (non implémentées)
 
-- Page **Facturation** (`/admin/facturation`) — suivi factures, envoi, paiement
 - Authentification admin (Supabase Auth + protection `/admin`)
 - Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro
 - Extension de recherche (`search_extended`) si aucun pro trouvé

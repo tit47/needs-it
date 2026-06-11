@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/admin";
 import {
   ActiveStatusBadge,
+  InvoiceStatusBadge,
   RequestStatusBadge,
 } from "@/components/admin/status-badges";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +25,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Professional, RequestStatus } from "@/types";
+import type { Invoice, Professional, RequestStatus } from "@/types";
 import { formatDateFr, formatDateTimeFr } from "@/utils/datetime";
+import { formatEur, formatMonthFr } from "@/utils/invoices";
 
 type ProfessionalRow = Professional;
 
@@ -40,6 +42,7 @@ export function ProfessionalsPanel({
   const [editOpen, setEditOpen] = useState(false);
   const [selected, setSelected] = useState<ProfessionalRow | null>(null);
   const [history, setHistory] = useState<unknown[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<Invoice[]>([]);
   const [unpaidAmount, setUnpaidAmount] = useState(0);
   const [form, setForm] = useState({
     full_name: "",
@@ -65,6 +68,7 @@ export function ProfessionalsPanel({
         return;
       }
       setHistory(result.data.history);
+      setPaymentHistory(result.data.paymentHistory);
       setUnpaidAmount(result.data.unpaidAmount);
     });
   };
@@ -256,7 +260,7 @@ export function ProfessionalsPanel({
 
             <div>
               <p className="mb-3 text-sm font-medium text-[var(--color-muted)]">
-                Historique
+                Historique des missions
               </p>
               {history.length === 0 ? (
                 <p className="text-sm text-[var(--color-muted)]">
@@ -308,6 +312,43 @@ export function ProfessionalsPanel({
                     </li>
                     );
                   })}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-medium text-[var(--color-muted)]">
+                Historique des paiements
+              </p>
+              {paymentHistory.length === 0 ? (
+                <p className="text-sm text-[var(--color-muted)]">
+                  Aucune facture enregistrée.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {paymentHistory.map((invoice) => (
+                    <li
+                      key={invoice.id}
+                      className="rounded-2xl bg-black/[0.03] px-4 py-3 text-sm dark:bg-white/[0.04]"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">
+                          {formatMonthFr(invoice.month)}
+                        </span>
+                        <span>
+                          {invoice.mission_count} mission
+                          {invoice.mission_count > 1 ? "s" : ""}
+                        </span>
+                        <span className="font-semibold">
+                          {formatEur(Number(invoice.amount))}
+                        </span>
+                        <InvoiceStatusBadge
+                          invoiceSent={invoice.invoice_sent}
+                          paid={invoice.paid}
+                        />
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>

@@ -1,0 +1,37 @@
+06_facturation
+Avant toute chose, lire le cahier des charges complet et respecter l'architecture existante.
+L'objectif de cette étape est de mettre en place un système simple de facturation pour la V1.
+La simplicité est prioritaire.
+Principe
+Une mission validée rapporte :
+5 euros
+Le montant est dû par le professionnel ayant pris la mission.
+La facturation est réalisée manuellement.
+Page Facturation
+Créer un tableau contenant :
+Nom du professionnel
+Nombre de missions
+Montant dû
+Facture envoyée
+Facture payée
+Filtres :
+Mois
+Payé ou non
+Professionnel
+Fiche d'un professionnel
+Afficher :
+Historique des missions
+Nombre total de missions
+Montant total dû
+Historique des paiements
+États
+Facture non envoyée
+Facture envoyée
+Facture payée
+Préparer l'architecture pour permettre plus tard :
+Paiement automatique
+Abonnements
+Stripe
+Facturation automatique
+La priorité de cette version est uniquement de suivre les montants et les paiements.
+Une fois terminé, expliquer le fonctionnement de la facturation comme si tu t'adressais à une personne non développeur.

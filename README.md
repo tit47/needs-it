@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02, 03, 04, 05, 06 et 07 terminées.**  
+**État du projet : étapes 01, 02, 03, 04, 05, 06, 07 et 08 terminées.**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -77,7 +77,7 @@ node scripts/copy-brand-assets.js
 
 ### Étape 01 — Architecture ✅
 
-- Structure Next.js App Router, design system Tailwind (mobile first — voir étape 07 pour l'harmonisation visuelle complète)
+- Structure Next.js App Router, design system Tailwind (mobile first — harmonisation visuelle étapes 07 et 08)
 - Schéma PostgreSQL Supabase (UUID, pas de suppression, statuts + historique)
 - Clients Supabase (`lib/supabase/`), services de données, types TypeScript
 - Shell admin (layout, sidebar, navbar)
@@ -210,14 +210,15 @@ Harmonisation visuelle de **toute** l'application (client, pro, admin). **Aucune
 | Boutons | très arrondis (`--radius-button`), grande taille, ombre légère | idem |
 | Inputs | coins arrondis (`--radius-input`), hauteur 56 px, focus bleu foncé | idem |
 
-Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-field-error`, `.photo-thumbnail`, `.dropdown-panel`, `.alert-banner`, `.alert-banner-error`, `.alert-banner-info`, `.nav-item-active`, `.stat-icon-wrap`.
+Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-field-error`, `.photo-thumbnail`, `.dropdown-panel`, `.alert-banner`, `.alert-banner-error`, `.alert-banner-info`, `.alert-banner-success` (étape 08), `.field-hint`, `.field-success` (étape 08), `.nav-item-active`, `.stat-icon-wrap`.
 
 **Composants UI affinés** (`components/ui/`) :
 
 - `Button` — ombre, transition, feedback au clic
-- `Input` / `Textarea` — basés sur `.input-field`
-- `Table` — en-têtes lisibles, survol des lignes, scroll horizontal mobile
+- `Input` / `Textarea` — basés sur `.input-field`, erreurs via `FieldError` + attributs ARIA (étape 08)
+- `Table` — en-têtes lisibles, survol des lignes, scroll horizontal mobile ; `TableEmpty` avec état vide (étape 08)
 - `Badge`, `Modal` (animation d'entrée), `Card`
+- `AlertBanner`, `Spinner`, `LoadingState`, `FieldError` (étape 08)
 
 **Identité graphique** :
 
@@ -230,14 +231,15 @@ Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-fi
 
 | Composant | Usage |
 |-----------|-------|
-| `ClientShell` | Enveloppe `/` : navbar + bascule clair/sombre (`ThemeProvider`) |
+| `ClientShell` | Enveloppe `/` : navbar + bascule clair/sombre (`ThemeProvider`), `SkipLink` |
 | `Navbar` | Barre sticky partagée (logo + thème) |
-| `AdminShell` + `Sidebar` | Back-office : logo sombre, navigation active cohérente |
+| `AdminShell` + `Sidebar` | Back-office : logo sombre, navigation active cohérente, `SkipLink` |
 | `ProPageHeader` | En-tête uniforme `/pro/[token]` |
+| `SkipLink` | Lien « Aller au contenu principal » (navigation clavier, étape 08) |
 
 **Par zone :**
 
-- **Client** — formulaire avec titre « Décrivez votre besoin », champs catégorie/adresse unifiés (`.input-field`, `.dropdown-panel`), grilles photos (`.photo-thumbnail`), messages d'erreur (`.alert-banner-error`)
+- **Client** — formulaire avec titre « Décrivez votre besoin », champs catégorie/adresse unifiés (`.input-field`, `.dropdown-panel`), grilles photos (`.photo-thumbnail`), retours via `AlertBanner` / `FieldError`
 - **Pro** — en-tête avec logo, cartes et galerie photos alignées sur le design system
 - **Admin** — cartes stats avec icônes en pastille, tableaux modernisés, modales animées, espacements revus
 
@@ -257,6 +259,55 @@ Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-fi
 - `components/admin/stat-cards.tsx`, `admin-page-header.tsx`
 - `public/logo.png`, `public/logo-dark.png`
 - `scripts/copy-brand-assets.js`
+
+### Étape 08 — Finitions ✅
+
+Consolidation et qualité globale. **Aucune nouvelle fonctionnalité métier** — cohérence des retours utilisateur, accessibilité, corrections mineures et factorisation des patterns répétés.
+
+**Composants UI ajoutés** (`components/ui/`) :
+
+| Composant | Rôle |
+|-----------|------|
+| `AlertBanner` | Messages d'erreur, succès et info (classes `.alert-banner-*`) |
+| `Spinner` | Animation de chargement unifiée |
+| `LoadingState` | Bloc « chargement » avec texte (modales admin, etc.) |
+| `FieldError` + `fieldErrorId()` | Erreurs sous les champs, liées via `aria-describedby` |
+
+**Accessibilité et navigation** :
+
+- `SkipLink` (`components/layout/skip-link.tsx`) sur client, admin et espace pro → `#main-content`
+- `Input` / `Textarea` : `aria-invalid`, `aria-describedby` quand une erreur est affichée
+- Champs custom (catégorie, adresse) : labels, listbox, `aria-selected` sur les suggestions
+- Case Telegram (paramètres admin) : `aria-label` explicite
+
+**Design system** (`app/globals.css`) — extensions étape 08 :
+
+- `.alert-banner-success` — confirmation (ex. paramètre enregistré)
+- `.field-hint` — textes d'aide sous les champs
+- `.field-success` — confirmation de sélection (ex. adresse validée)
+
+**Harmonisation appliquée** :
+
+- Client, pro et admin : `AlertBanner` et `Spinner` remplacent les styles ad hoc (`text-red-500`, bannières inline)
+- Tableaux admin vides : `TableEmpty` avec icône et message centré
+- Modales admin (demandes, alertes, professionnels) : `LoadingState`, effacement du contenu précédent à l'ouverture d'un autre élément
+- Validation serveur : format d'email pour l'expéditeur dans `updateSenderEmailAction` (`utils/validation.ts` → `isValidEmail`)
+
+**Non implémenté dans cette étape** :
+
+- Authentification admin (inchangée — voir limites connues)
+- Nouvelles pages, parcours ou règles métier
+- Tests automatiques
+- Audit des emails dans tous les clients mail
+
+**Fichiers clés** :
+
+- `components/ui/alert-banner.tsx`, `spinner.tsx`, `loading-state.tsx`, `field-error.tsx`
+- `components/layout/skip-link.tsx`
+- `app/globals.css` (`.alert-banner-success`, `.field-hint`, `.field-success`)
+- `components/ui/input.tsx`, `textarea.tsx`, `table.tsx` (`TableEmpty`)
+- `components/client/*`, `components/pro/*`, `components/admin/*` (retours utilisateur unifiés)
+- `utils/validation.ts` (`isValidEmail`)
 
 ---
 
@@ -283,7 +334,7 @@ Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-fi
 | Adresse complète après confirmation | ✅ |
 | Libération de mission | ✅ |
 | Emails transactionnels | ✅ (si Resend configuré) |
-| Interface harmonisée (design system étape 07) | ✅ |
+| Interface harmonisée (design system étapes 07–08) | ✅ |
 
 ### Côté admin (`/admin/*`)
 
@@ -297,7 +348,7 @@ Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-fi
 | `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
 | `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
 | `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée / annuler paiement |
-| Interface harmonisée (design system étape 07) | ✅ |
+| Interface harmonisée (design system étapes 07–08) | ✅ |
 | Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
 
 ### API
@@ -365,8 +416,8 @@ components/
   client/                     → Parcours client (formulaire, confirmation…)
   pro/                        → Parcours pro (claim, contact, photos…)
   admin/                      → Panneaux admin (tableaux, stats, paramètres…)
-  ui/                         → Design system (Button, Card, Input, Table…)
-  layout/                     → AppLogo, ClientShell, AdminShell, Sidebar, Navbar, ProPageHeader
+  ui/                         → Design system (Button, Card, Input, Table, AlertBanner, Spinner…)
+  layout/                     → AppLogo, ClientShell, AdminShell, Sidebar, Navbar, ProPageHeader, SkipLink
   providers/                  → ThemeProvider (clair / sombre)
 
 services/                     → Couche données + orchestration métier
@@ -477,7 +528,7 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 2. **Pas de compte pro** — accès uniquement via lien sécurisé reçu par email.
 3. **Le téléphone + code mission** garantissent un échange réel avant dévoilement de l'adresse.
 4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client.
-5. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
+5. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Messages utilisateur : `AlertBanner` (pas de `text-red-500` ad hoc). Chargements : `Spinner` / `LoadingState`. Erreurs de champ : `FieldError`. Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
 6. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
 7. **Historique** — tracer les actions significatives via `eventsService.log()`.
 8. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
@@ -485,17 +536,20 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
 11. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
 12. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
-13. **Design (étape 07)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field` et `.dropdown-panel`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
+13. **Design (étapes 07–08)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field`, `.dropdown-panel` et `FieldError` pour les erreurs. Retours globaux : `AlertBanner`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
+14. **Accessibilité** — `SkipLink` sur les layouts principaux ; champs avec label + `aria-invalid` / `aria-describedby` quand pertinent ; listbox avec `aria-label` et `aria-selected` sur les options.
 
 ---
 
 ## Limites connues (V1)
 
-- **Authentification admin** — accès `/admin` non protégé par login (middleware Supabase préparé)
+- **Authentification admin** — accès `/admin` non protégé par login (`middleware.ts` rafraîchit la session Supabase Auth mais ne redirige pas vers un login)
 - **Emails pro** — utilisent `RESEND_FROM_EMAIL` / défaut Resend, pas `app_settings.sender_email`
 - **Extension de recherche** — pas de `search_extended` si aucun pro trouvé
 - **Clôture de mission** — statut `completed` prévu en schéma, pas encore exposé dans l'UI pro ou admin
 - **Paiement en ligne** — pas de Stripe, abonnements ni envoi automatique de factures
+- **Tests automatiques** — pas de suite de tests (lint + build manuels)
+- **Emails** — templates HTML en place, non validés dans tous les clients mail
 
 ---
 

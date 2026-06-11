@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, Loader2, MapPin, X } from "lucide-react";
+import { Check, MapPin, X } from "lucide-react";
+import { FieldError, fieldErrorId } from "@/components/ui/field-error";
+import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useRef } from "react";
 import { cn } from "@/utils/cn";
 import { useAddressAutocomplete } from "@/hooks/use-address-autocomplete";
@@ -86,6 +88,8 @@ export function AddressAutocompleteField({
           placeholder="Numéro, rue, code postal, ville"
           autoComplete="street-address"
           enterKeyHint="search"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? fieldErrorId("client-address") : undefined}
           className={cn(
             "input-field pl-12 pr-12",
             selectedAddress && "border-green-500 focus-visible:border-green-500 focus-visible:shadow-[0_0_0_3px_rgba(34,197,94,0.2)]",
@@ -95,7 +99,7 @@ export function AddressAutocompleteField({
 
         {isLoading && (
           <span className="absolute right-10 top-1/2 -translate-y-1/2">
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--color-muted)]" />
+            <Spinner className="h-4 w-4 text-[var(--color-muted)]" />
           </span>
         )}
 
@@ -115,16 +119,18 @@ export function AddressAutocompleteField({
       </div>
 
       {selectedAddress && (
-        <p className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-          <Check className="h-4 w-4 shrink-0" />
+        <p className="field-success">
+          <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
           {selectedAddress.postcode} {selectedAddress.city}
         </p>
       )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <FieldError id={fieldErrorId("client-address")} error={error} />
+      )}
 
       {!selectedAddress && query.trim().length > 0 && query.trim().length < 3 && (
-        <p className="text-xs text-[var(--color-muted)]">
+        <p className="field-hint">
           Saisissez au moins 3 caractères pour afficher des suggestions.
         </p>
       )}
@@ -140,6 +146,7 @@ export function AddressAutocompleteField({
               <button
                 type="button"
                 role="option"
+                aria-selected={selectedAddress?.id === address.id}
                 onClick={() => selectAddress(address)}
                 className="flex w-full flex-col gap-0.5 border-b border-[var(--color-border)] px-4 py-4 text-left last:border-b-0 hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/5 dark:active:bg-white/10"
               >
@@ -180,7 +187,7 @@ export function AddressAutocompleteField({
         </>
       )}
 
-      <p className="text-xs text-[var(--color-muted)]">
+      <p className="field-hint">
         Sélectionnez votre adresse dans la liste. Votre adresse sert uniquement à
         trouver un professionnel proche et ne sera pas visible avant confirmation
         de la mission.

@@ -11,7 +11,9 @@ import {
   InvoiceStatusBadge,
   RequestStatusBadge,
 } from "@/components/admin/status-badges";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Badge } from "@/components/ui/badge";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,6 +63,9 @@ export function ProfessionalsPanel({
     setSelected(professional);
     setDetailOpen(true);
     setError(null);
+    setHistory([]);
+    setPaymentHistory([]);
+    setUnpaidAmount(0);
     startTransition(async () => {
       const result = await getProfessionalDetailAction(professional.id);
       if (!result.success) {
@@ -209,9 +214,12 @@ export function ProfessionalsPanel({
         title="Fiche professionnel"
         className="max-w-2xl"
       >
+        {isPending && !history.length && !paymentHistory.length && selected && (
+          <LoadingState message="Chargement de la fiche…" />
+        )}
         {selected && (
           <div className="space-y-5">
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <AlertBanner variant="error">{error}</AlertBanner>}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-sm text-[var(--color-muted)]">Nom</p>
@@ -363,7 +371,7 @@ export function ProfessionalsPanel({
         className="max-w-xl"
       >
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <AlertBanner variant="error">{error}</AlertBanner>}
           <Input
             label="Nom complet"
             value={form.full_name}

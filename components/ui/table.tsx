@@ -1,3 +1,4 @@
+import { Inbox } from "lucide-react";
 import { type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
 import { cn } from "@/utils/cn";
 
@@ -93,11 +94,14 @@ export function TableCell({
 export function TableEmpty({ message }: { message: string }) {
   return (
     <TableRow>
-      <TableCell
-        colSpan={100}
-        className="py-16 text-center text-[var(--color-muted)]"
-      >
-        {message}
+      <TableCell colSpan={100} className="py-16">
+        <div
+          className="flex flex-col items-center justify-center gap-3 text-center text-[var(--color-muted)]"
+          role="status"
+        >
+          <Inbox className="h-10 w-10 opacity-40" aria-hidden="true" />
+          <p className="text-sm">{message}</p>
+        </div>
       </TableCell>
     </TableRow>
   );

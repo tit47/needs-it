@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { claimMissionAction } from "@/app/actions/pro-workflow";
@@ -79,7 +79,7 @@ export function ProClaimForm({ token }: ProClaimFormProps) {
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner />
               Confirmation…
             </>
           ) : (

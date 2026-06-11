@@ -4,6 +4,12 @@ import type { BanAddress } from "./geocoding";
 export const MAX_PHOTOS = 5;
 export const MIN_DESCRIPTION_LENGTH = 10;
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_PATTERN.test(email.trim());
+}
+
 export interface ClientFormValues {
   categoryId: string;
   description: string;

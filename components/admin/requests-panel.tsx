@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { getRequestDetailAction } from "@/app/actions/admin";
 import { ProPhotoGallery } from "@/components/pro/pro-photo-gallery";
 import { RequestStatusBadge } from "@/components/admin/status-badges";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Badge } from "@/components/ui/badge";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -40,6 +42,7 @@ export function RequestsPanel({ requests }: RequestsPanelProps) {
   const openDetail = (id: string) => {
     setSelectedId(id);
     setError(null);
+    setDetail(null);
     startTransition(async () => {
       const result = await getRequestDetailAction(id);
       if (!result.success) {
@@ -102,10 +105,8 @@ export function RequestsPanel({ requests }: RequestsPanelProps) {
         title="Détail de la demande"
         className="max-w-2xl"
       >
-        {isPending && (
-          <p className="text-sm text-[var(--color-muted)]">Chargement…</p>
-        )}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {isPending && <LoadingState message="Chargement du détail…" />}
+        {error && <AlertBanner variant="error">{error}</AlertBanner>}
         {detail && !isPending && (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">

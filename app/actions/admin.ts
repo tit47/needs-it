@@ -20,6 +20,7 @@ import type {
   RequestEvent,
   RequestPhoto,
 } from "@/types";
+import { isValidEmail } from "@/utils/validation";
 
 function revalidateAdmin() {
   revalidatePath("/admin");
@@ -221,6 +222,10 @@ export async function updateSenderEmailAction(senderEmail: string) {
 
   if (!trimmed) {
     return { success: false, error: "L'email expéditeur est requis." };
+  }
+
+  if (!isValidEmail(trimmed)) {
+    return { success: false, error: "Format d'email invalide." };
   }
 
   const client = createAdminClient();

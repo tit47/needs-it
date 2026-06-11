@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { FieldError, fieldErrorId } from "@/components/ui/field-error";
 import { cn } from "@/utils/cn";
 import { useCategorySearch } from "@/hooks/use-category-search";
 import type { Category } from "@/types";
@@ -129,6 +130,8 @@ export function CategorySearchField({
           onFocus={() => setIsOpen(true)}
           placeholder="Ex : plom, elec, chauff…"
           autoComplete="off"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? fieldErrorId("category-search") : undefined}
           className={cn(
             "input-field",
             selectedCategory ? "pl-12 pr-10" : "",
@@ -151,6 +154,7 @@ export function CategorySearchField({
           <ul
             className="dropdown-panel absolute top-[calc(100%+8px)] z-20 max-h-56 w-full overflow-y-auto"
             role="listbox"
+            aria-label="Suggestions de catégories"
           >
             {filteredCategories.map((category) => (
               <li key={category.id}>
@@ -181,7 +185,9 @@ export function CategorySearchField({
         )}
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <FieldError id={fieldErrorId("category-search")} error={error} />
+      )}
     </div>
   );
 }

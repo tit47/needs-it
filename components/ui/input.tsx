@@ -1,4 +1,5 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
+import { FieldError, fieldErrorId } from "@/components/ui/field-error";
 import { cn } from "@/utils/cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -9,6 +10,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const errorId = inputId ? fieldErrorId(inputId) : undefined;
 
     return (
       <div className="flex w-full flex-col gap-2">
@@ -23,6 +25,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           className={cn(
             "input-field",
             error && "input-field-error",
@@ -30,7 +34,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && errorId && <FieldError id={errorId} error={error} />}
       </div>
     );
   }

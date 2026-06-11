@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,11 +77,11 @@ export function RequestConfirmation({ missionCode }: RequestConfirmationProps) {
           )}
         </Button>
 
-        <p className="alert-banner alert-banner-info">
+        <AlertBanner variant="info">
           Gardez votre téléphone à proximité.
           <br />
           Vous pouvez fermer cette page.
-        </p>
+        </AlertBanner>
       </div>
     </Card>
   );

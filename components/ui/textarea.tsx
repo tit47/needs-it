@@ -1,4 +1,5 @@
 import { forwardRef, type TextareaHTMLAttributes } from "react";
+import { FieldError, fieldErrorId } from "@/components/ui/field-error";
 import { cn } from "@/utils/cn";
 
 export interface TextareaProps
@@ -10,6 +11,7 @@ export interface TextareaProps
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const textareaId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const errorId = textareaId ? fieldErrorId(textareaId) : undefined;
 
     return (
       <div className="flex w-full flex-col gap-2">
@@ -24,6 +26,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={textareaId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           className={cn(
             "input-field min-h-[120px] py-3",
             error && "input-field-error",
@@ -31,7 +35,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           {...props}
         />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && errorId && <FieldError id={errorId} error={error} />}
       </div>
     );
   }

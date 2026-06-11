@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import Image from "next/image";
 import { useRef } from "react";
+import { FieldError, fieldErrorId } from "@/components/ui/field-error";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/utils/cn";
 import { usePhotoUpload } from "@/hooks/use-photo-upload";
 import { MAX_PHOTOS } from "@/utils/validation";
@@ -78,7 +80,7 @@ export function PhotoUploadGrid({ onPhotosChange, error }: PhotoUploadGridProps)
             )}
           >
             {isProcessing ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Spinner className="h-6 w-6" />
             ) : (
               <Camera className="h-6 w-6" />
             )}
@@ -100,7 +102,9 @@ export function PhotoUploadGrid({ onPhotosChange, error }: PhotoUploadGridProps)
         Jusqu&apos;à {MAX_PHOTOS} photos. Compression automatique avant envoi.
       </p>
 
-      {displayError && <p className="text-sm text-red-500">{displayError}</p>}
+      {displayError && (
+        <FieldError id={fieldErrorId("client-photos")} error={displayError} />
+      )}
     </div>
   );
 }

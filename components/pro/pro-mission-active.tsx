@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
+import { AlertBanner } from "@/components/ui/alert-banner";
+import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { releaseMissionAction } from "@/app/actions/pro-workflow";
@@ -50,9 +52,9 @@ export function ProMissionActive({ token }: ProMissionActiveProps) {
       </CardHeader>
 
       {error && (
-        <p className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-300">
+        <AlertBanner variant="error" className="mb-4">
           {error}
-        </p>
+        </AlertBanner>
       )}
 
       <Button
@@ -64,7 +66,7 @@ export function ProMissionActive({ token }: ProMissionActiveProps) {
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Spinner />
             Libération…
           </>
         ) : (

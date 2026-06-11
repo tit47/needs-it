@@ -7,7 +7,9 @@ import {
   type AlertDetail,
 } from "@/app/actions/admin";
 import { AlertLevelBadge, RequestStatusBadge } from "@/components/admin/status-badges";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -68,6 +70,7 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   const openDetail = (id: string) => {
     setSelectedId(id);
     setDetailError(null);
+    setDetail(null);
     startTransition(async () => {
       const result = await getAlertDetailAction(id);
       if (!result.success) {
@@ -195,10 +198,11 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
       </Card>
 
       <Modal open={selectedId != null} onClose={closeDetail} title="Détail alerte">
+        {isPending && !detail && <LoadingState message="Chargement de l'alerte…" />}
         {detailError && (
-          <p className="text-sm text-[var(--color-danger)]">{detailError}</p>
+          <AlertBanner variant="error">{detailError}</AlertBanner>
         )}
-        {detail && (
+        {detail && !isPending && (
           <div className="space-y-4 text-sm text-[var(--color-card-foreground)]">
             <div className="flex flex-wrap items-center gap-2">
               <AlertLevelBadge level={detail.level} />

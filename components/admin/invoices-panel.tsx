@@ -6,6 +6,7 @@ import {
   markInvoiceSentAction,
 } from "@/app/actions/admin";
 import { InvoiceStatusBadge } from "@/components/admin/status-badges";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -96,7 +97,7 @@ export function InvoicesPanel({
           </CardDescription>
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <AlertBanner variant="error">{error}</AlertBanner>}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Input

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useCallback, useRef, useState } from "react";
 import { createRequestAction } from "@/app/actions/create-request";
 import { AddressAutocompleteField } from "@/components/client/address-autocomplete-field";
@@ -8,6 +8,7 @@ import { CategorySearchField } from "@/components/client/category-search-field";
 import { LandingHero } from "@/components/client/landing-hero";
 import { PhotoUploadGrid } from "@/components/client/photo-upload-grid";
 import { RequestConfirmation } from "@/components/client/request-confirmation";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -183,7 +184,7 @@ export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
             />
 
             {submitError && (
-              <p className="alert-banner alert-banner-error">{submitError}</p>
+              <AlertBanner variant="error">{submitError}</AlertBanner>
             )}
 
             <Button
@@ -194,7 +195,7 @@ export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Spinner />
                   Envoi en cours…
                 </>
               ) : (

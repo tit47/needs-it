@@ -8,6 +8,7 @@ import {
   updateSenderEmailAction,
   updateTelegramNotificationsAction,
 } from "@/app/actions/admin";
+import { AlertBanner } from "@/components/ui/alert-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,12 +57,9 @@ export function SettingsPanel({
 
   return (
     <div className="space-y-6">
-      {(message || error) && (
-        <Card padding="sm">
-          <p className={error ? "text-sm text-red-500" : "text-sm text-green-700"}>
-            {error ?? message}
-          </p>
-        </Card>
+      {error && <AlertBanner variant="error">{error}</AlertBanner>}
+      {message && !error && (
+        <AlertBanner variant="success">{message}</AlertBanner>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -125,12 +123,13 @@ export function SettingsPanel({
             <p className="text-sm text-[var(--color-muted)]">
               Bot configuré : {telegramConfigured ? "Oui" : "Non (variables .env)"}
             </p>
-            <label className="flex items-center gap-3 text-sm">
+            <label className="flex items-center gap-3 text-sm text-[var(--color-card-foreground)]">
               <input
                 type="checkbox"
                 checked={telegramEnabled}
                 onChange={(event) => setTelegramEnabled(event.target.checked)}
-                className="h-5 w-5 rounded"
+                className="h-5 w-5 rounded border-[var(--color-border)] accent-[var(--color-button)]"
+                aria-label="Activer les notifications Telegram"
               />
               Activer les notifications Telegram
             </label>

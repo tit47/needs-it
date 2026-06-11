@@ -27,7 +27,7 @@ import {
 import { useEffect, useRef } from "react";
 import { FieldError, fieldErrorId } from "@/components/ui/field-error";
 import { cn } from "@/utils/cn";
-import { useCategorySearch } from "@/hooks/use-category-search";
+import { useCategoryMultiSearch, useCategorySearch } from "@/hooks/use-category-search";
 import type { Category } from "@/types";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -188,6 +188,138 @@ export function CategorySearchField({
       {error && (
         <FieldError id={fieldErrorId("category-search")} error={error} />
       )}
+    </div>
+  );
+}
+
+interface CategoryMultiSearchFieldProps {
+  categories: Category[];
+  selectedCategories: Category[];
+  error?: string;
+  inputId?: string;
+  label?: string;
+  onChange: (categories: Category[]) => void;
+}
+
+export function CategoryMultiSearchField({
+  categories,
+  selectedCategories,
+  error,
+  inputId = "category-multi-search",
+  label = "Catégories",
+  onChange,
+}: CategoryMultiSearchFieldProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const {
+    search,
+    filteredCategories,
+    isOpen,
+    setIsOpen,
+    setSearch,
+    resetSearch,
+  } = useCategoryMultiSearch(categories, selectedCategories);
+
+  const addAndNotify = (category: Category) => {
+    if (selectedCategories.some((item) => item.id === category.id)) {
+      return;
+    }
+    onChange([...selectedCategories, category]);
+    resetSearch();
+  };
+
+  const removeAndNotify = (categoryId: string) => {
+    onChange(selectedCategories.filter((item) => item.id !== categoryId));
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [setIsOpen]);
+
+  return (
+    <div ref={containerRef} className="relative flex w-full flex-col gap-2">
+      <label
+        htmlFor={inputId}
+        className="text-sm font-medium text-[var(--color-card-foreground)]"
+      >
+        {label}
+      </label>
+
+      {selectedCategories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedCategories.map((category) => (
+            <span
+              key={category.id}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-semibold text-[var(--color-card-foreground)]"
+            >
+              <CategoryIcon name={category.icon} />
+              {category.name}
+              <button
+                type="button"
+                onClick={() => removeAndNotify(category.id)}
+                className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+                aria-label={`Retirer ${category.name}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <input
+          id={inputId}
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onFocus={() => setIsOpen(true)}
+          placeholder="Ex : plom, elec, chauff…"
+          autoComplete="off"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? fieldErrorId(inputId) : undefined}
+          className={cn("input-field", error && "input-field-error")}
+        />
+
+        {isOpen && filteredCategories.length > 0 && (
+          <ul
+            className="dropdown-panel absolute top-[calc(100%+8px)] z-20 max-h-56 w-full overflow-y-auto"
+            role="listbox"
+            aria-label="Suggestions de catégories"
+          >
+            {filteredCategories.map((category) => (
+              <li key={category.id}>
+                <button
+                  type="button"
+                  role="option"
+                  onClick={() => addAndNotify(category)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-[var(--color-card-foreground)] hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  <CategoryIcon name={category.icon} />
+                  <span>{category.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {isOpen && search && filteredCategories.length === 0 && (
+          <p className="dropdown-panel absolute top-[calc(100%+8px)] z-20 w-full px-4 py-3 text-sm text-[var(--color-muted)]">
+            Aucune catégorie trouvée.
+          </p>
+        )}
+      </div>
+
+      {error && <FieldError id={fieldErrorId(inputId)} error={error} />}
     </div>
   );
 }

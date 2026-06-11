@@ -25,6 +25,25 @@ export const professionalsService = {
     return client.from("professionals").update({ active }).eq("id", id);
   },
 
+  async create(
+    client: Client,
+    data: {
+      full_name: string;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      latitude: number | null;
+      longitude: number | null;
+      siren: string;
+      categories: string[];
+      radius_km: number;
+      active: boolean;
+    }
+  ) {
+    return client.from("professionals").insert(data).select("*").single();
+  },
+
   async update(
     client: Client,
     id: string,

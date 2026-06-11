@@ -1,10 +1,14 @@
 import { AdminPageHeader, ProfessionalsPanel } from "@/components/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { professionalsService } from "@/services";
+import { categoriesService, professionalsService } from "@/services";
 
 export default async function ProfessionnelsPage() {
   const client = createAdminClient();
-  const { data: professionals } = await professionalsService.list(client);
+  const [{ data: professionals }, { data: activeCategories }] =
+    await Promise.all([
+      professionalsService.list(client),
+      categoriesService.list(client),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -13,7 +17,10 @@ export default async function ProfessionnelsPage() {
         description="Gestion du réseau de professionnels actifs."
       />
 
-      <ProfessionalsPanel professionals={professionals ?? []} />
+      <ProfessionalsPanel
+        professionals={professionals ?? []}
+        activeCategories={activeCategories ?? []}
+      />
     </div>
   );
 }

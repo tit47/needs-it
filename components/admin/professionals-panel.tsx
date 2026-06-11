@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  createProfessionalAction,
   getProfessionalDetailAction,
   suspendProfessionalAction,
   updateProfessionalAction,
@@ -11,6 +12,8 @@ import {
   InvoiceStatusBadge,
   RequestStatusBadge,
 } from "@/components/admin/status-badges";
+import { AddressAutocompleteField } from "@/components/client/address-autocomplete-field";
+import { CategoryMultiSearchField } from "@/components/client/category-search-field";
 import { AlertBanner } from "@/components/ui/alert-banner";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -27,7 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Invoice, Professional, RequestStatus } from "@/types";
+import type { BanAddress } from "@/utils/geocoding";
+import type { Category, Invoice, Professional, RequestStatus } from "@/types";
 import { formatDateFr, formatDateTimeFr } from "@/utils/datetime";
 import { formatEur, formatMonthFr } from "@/utils/invoices";
 
@@ -35,13 +39,25 @@ type ProfessionalRow = Professional;
 
 interface ProfessionalsPanelProps {
   professionals: ProfessionalRow[];
+  activeCategories: Category[];
 }
+
+const EMPTY_CREATE_FORM = {
+  full_name: "",
+  email: "",
+  phone: "",
+  siren: "",
+  radius_km: "30",
+  active: true,
+};
 
 export function ProfessionalsPanel({
   professionals,
+  activeCategories,
 }: ProfessionalsPanelProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<ProfessionalRow | null>(null);
   const [history, setHistory] = useState<unknown[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<Invoice[]>([]);
@@ -56,6 +72,13 @@ export function ProfessionalsPanel({
     categories: "",
     radius_km: "30",
   });
+  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<BanAddress | null>(
+    null
+  );
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -92,6 +115,53 @@ export function ProfessionalsPanel({
     });
     setEditOpen(true);
     setError(null);
+  };
+
+  const openCreate = () => {
+    setCreateForm(EMPTY_CREATE_FORM);
+    setSelectedCategories([]);
+    setSelectedAddress(null);
+    setAddressError(null);
+    setCategoriesError(null);
+    setCreateOpen(true);
+    setError(null);
+  };
+
+  const handleCreate = () => {
+    if (!selectedAddress) {
+      setAddressError(
+        "Veuillez sélectionner une adresse dans la liste de suggestions."
+      );
+      return;
+    }
+
+    if (selectedCategories.length === 0) {
+      setCategoriesError("Au moins une catégorie est requise.");
+      return;
+    }
+
+    setAddressError(null);
+    setCategoriesError(null);
+    startTransition(async () => {
+      const result = await createProfessionalAction({
+        full_name: createForm.full_name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone.trim(),
+        siren: createForm.siren.trim(),
+        addressId: selectedAddress.id,
+        addressLabel: selectedAddress.label,
+        categories: selectedCategories.map((category) => category.name),
+        radius_km: Number(createForm.radius_km) || 30,
+        active: createForm.active,
+      });
+
+      if (!result.success) {
+        setError(result.error ?? "Création impossible.");
+        return;
+      }
+
+      setCreateOpen(false);
+    });
   };
 
   const handleSuspend = (professional: ProfessionalRow) => {
@@ -134,7 +204,11 @@ export function ProfessionalsPanel({
   };
 
   return (
-    <>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={openCreate}>Ajouter un professionnel</Button>
+      </div>
+
       <Card padding="none">
         <Table>
           <TableHeader>
@@ -365,6 +439,110 @@ export function ProfessionalsPanel({
       </Modal>
 
       <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Ajouter un professionnel"
+        className="max-w-xl"
+      >
+        <div className="space-y-4">
+          {error && <AlertBanner variant="error">{error}</AlertBanner>}
+          <Input
+            label="Nom complet"
+            value={createForm.full_name}
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                full_name: event.target.value,
+              }))
+            }
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={createForm.email}
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                email: event.target.value,
+              }))
+            }
+          />
+          <Input
+            label="Téléphone"
+            value={createForm.phone}
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                phone: event.target.value,
+              }))
+            }
+          />
+          <AddressAutocompleteField
+            inputId="pro-address"
+            label="Adresse"
+            hint="Sélectionnez l'adresse dans la liste pour localiser automatiquement le professionnel."
+            includeHiddenFields={false}
+            selectedAddress={selectedAddress}
+            error={addressError ?? undefined}
+            onSelect={(address) => {
+              setSelectedAddress(address);
+              if (address) setAddressError(null);
+            }}
+          />
+          <Input
+            label="SIREN"
+            value={createForm.siren}
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                siren: event.target.value,
+              }))
+            }
+          />
+          <CategoryMultiSearchField
+            inputId="pro-categories"
+            categories={activeCategories}
+            selectedCategories={selectedCategories}
+            error={categoriesError ?? undefined}
+            onChange={(categories) => {
+              setSelectedCategories(categories);
+              if (categories.length > 0) setCategoriesError(null);
+            }}
+          />
+          <Input
+            label="Rayon d'intervention (km)"
+            type="number"
+            min={1}
+            value={createForm.radius_km}
+            onChange={(event) =>
+              setCreateForm((current) => ({
+                ...current,
+                radius_km: event.target.value,
+              }))
+            }
+          />
+          <label className="flex items-center gap-3 text-sm text-[var(--color-card-foreground)]">
+            <input
+              type="checkbox"
+              checked={createForm.active}
+              onChange={(event) =>
+                setCreateForm((current) => ({
+                  ...current,
+                  active: event.target.checked,
+                }))
+              }
+              className="h-5 w-5 rounded border-[var(--color-border)] accent-[var(--color-button)]"
+              aria-label="Professionnel actif"
+            />
+            Professionnel actif
+          </label>
+          <Button onClick={handleCreate} disabled={isPending} className="w-full">
+            Créer le professionnel
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
         title="Modifier le professionnel"
@@ -448,6 +626,6 @@ export function ProfessionalsPanel({
           </Button>
         </div>
       </Modal>
-    </>
+    </div>
   );
 }

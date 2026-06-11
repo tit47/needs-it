@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01 à 08 terminées + authentification admin (étape supplémentaire).**  
+**État du projet : étapes 01 à 08 terminées + authentification admin + documents légaux + améliorations administration (professionnels).**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -241,7 +241,8 @@ Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-fi
 
 | Composant | Usage |
 |-----------|-------|
-| `ClientShell` | Enveloppe `/` : navbar + bascule clair/sombre (`ThemeProvider`), `SkipLink` |
+| `ClientShell` | Enveloppe client : navbar + contenu + `ClientFooter` (liens légaux), bascule clair/sombre (`ThemeProvider`), `SkipLink` |
+| `ClientFooter` | Footer mobile first : liens vers les pages légales + copyright |
 | `Navbar` | Barre sticky partagée (logo + thème) |
 | `AdminShell` + `Sidebar` | Back-office : logo sombre, navigation active cohérente, `SkipLink` |
 | `ProPageHeader` | En-tête uniforme `/pro/[token]` |
@@ -353,6 +354,68 @@ Protection du back-office via **Supabase Auth**. **Aucune modification des workf
 - Rôles / permissions granulaires
 - Réinitialisation de mot de passe dans l'UI
 
+### Étape supplémentaire — Documents légaux et conformité ✅
+
+Documentation légale préparatoire à la mise en production et pages publiques associées. **Aucune modification des workflows métier** (client, pro, matching, facturation, etc.).
+
+**Documents Markdown (source de vérité du contenu) :**
+
+| Fichier | Usage |
+|---------|-------|
+| `POLITIQUE_DE_CONFIDENTIALITE.md` | Politique de confidentialité (public) |
+| `CGU.md` | Conditions Générales d'Utilisation (public) |
+| `MENTIONS_LEGALES.md` | Mentions légales (public) |
+| `REGISTRE_RGPD.md` | Registre des traitements — **document interne**, non exposé sur le site |
+
+Les champs marqués `[À COMPLÉTER]` dans les documents publics doivent être renseignés avant le lancement.
+
+**Pages publiques :**
+
+| Route | Contenu |
+|-------|---------|
+| `/politique-de-confidentialite` | Politique de confidentialité |
+| `/cgu` | Conditions Générales d'Utilisation |
+| `/mentions-legales` | Mentions légales |
+
+**Footer client :**
+
+- Liens visibles vers les 3 pages légales depuis toutes les pages enveloppées par `ClientShell` (accueil + pages légales)
+- Copyright Need's it
+
+**Fonctionnement technique :**
+
+- Lecture des fichiers `.md` côté serveur uniquement (`lib/get-legal-document.ts` — module Node.js `fs`)
+- Métadonnées et liens du footer partagés sans dépendance serveur (`lib/legal-documents.ts`)
+- Rendu Markdown → HTML via `utils/markdown.ts` (titres, listes, tableaux, liens internes entre documents)
+- Affichage dans une `Card` avec styles `.legal-prose` (`app/globals.css`)
+
+**Fichiers clés :**
+
+- `components/layout/client-footer.tsx`, `components/layout/client-shell.tsx`
+- `components/client/legal-document-view.tsx`
+- `app/politique-de-confidentialite/page.tsx`, `app/cgu/page.tsx`, `app/mentions-legales/page.tsx`
+- `lib/legal-documents.ts`, `lib/get-legal-document.ts`, `utils/markdown.ts`
+
+### Étape supplémentaire — Gestion des professionnels (admin) ✅
+
+Enrichissement du panneau **Professionnels** (`/admin/professionnels`). **Aucune modification des workflows client ou pro.**
+
+**Nouveautés :**
+
+- **Création directe** d'un professionnel depuis l'admin (modale « Ajouter un professionnel »)
+- **Autocomplete adresse BAN** réutilisé depuis le parcours client (`AddressAutocompleteField`) — sélection obligatoire, géocodage serveur
+- **Sélection multi-catégories** via `CategoryMultiSearchField` et `useCategoryMultiSearch`
+- **Validation serveur** dans `createProfessionalAction` : email, téléphone FR, SIREN, adresse vérifiée, au moins une catégorie, unicité SIREN
+- Fiche, modification, suspension/réactivation et historique missions/paiements inchangés
+
+**Fichiers clés :**
+
+- `components/admin/professionals-panel.tsx`
+- `app/actions/admin.ts` (`createProfessionalAction`, `updateProfessionalAction`, `getProfessionalDetailAction`)
+- `services/professionals.service.ts` (`create`, `update`, `getBySiren`)
+- `components/client/address-autocomplete-field.tsx`, `components/client/category-search-field.tsx`
+- `hooks/use-category-search.ts` (`useCategoryMultiSearch`)
+
 ---
 
 ## Fonctionnalités disponibles
@@ -366,6 +429,8 @@ Protection du back-office via **Supabase Auth**. **Aucune modification des workf
 | Autocomplete adresse BAN | ✅ |
 | Code mission affiché après envoi | ✅ |
 | Barre de navigation + bascule clair/sombre | ✅ |
+| Footer avec liens légaux | ✅ |
+| Pages légales (`/politique-de-confidentialite`, `/cgu`, `/mentions-legales`) | ✅ |
 | Compte client | ❌ (non prévu V1) |
 
 ### Côté professionnel (`/pro/[token]`)
@@ -386,7 +451,7 @@ Protection du back-office via **Supabase Auth**. **Aucune modification des workf
 |-------|--------|
 | `/admin` | ✅ Dashboard (stats, activité, alertes importantes) |
 | `/admin/demandes` | ✅ Liste + détail demande |
-| `/admin/professionnels` | ✅ Liste, fiche (missions + paiements), modification, suspension |
+| `/admin/professionnels` | ✅ Liste, création, fiche (missions + paiements), modification, suspension |
 | `/admin/candidats` | ✅ Liste, validation / refus / suspension |
 | `/admin/alertes` | ✅ Liste filtrable, détail, résolution |
 | `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
@@ -451,7 +516,10 @@ Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, fact
 app/
   page.tsx                    → Landing + formulaire client (via ClientShell)
   layout.tsx                  → Layout racine, metadata, ThemeProvider
-  globals.css                 → Design system (tokens CSS, utilitaires)
+  globals.css                 → Design system (tokens CSS, utilitaires, .legal-prose)
+  politique-de-confidentialite/page.tsx → Page légale
+  cgu/page.tsx                → Page légale
+  mentions-legales/page.tsx   → Page légale
   actions/
     create-request.ts         → Création demande (server action)
     pro-workflow.ts           → Prise / libération mission (server actions)
@@ -465,14 +533,19 @@ app/
       layout.tsx              → Shell sidebar + navbar
       page.tsx, demandes/, …  → Dashboard et sections
 
+POLITIQUE_DE_CONFIDENTIALITE.md → Source contenu politique de confidentialité
+CGU.md                         → Source contenu CGU
+MENTIONS_LEGALES.md            → Source contenu mentions légales
+REGISTRE_RGPD.md               → Registre RGPD interne (non publié)
+
 middleware.ts                 → Protection /admin/* (redirection login)
 
 components/
-  client/                     → Parcours client (formulaire, confirmation…)
+  client/                     → Parcours client (formulaire, confirmation, legal-document-view…)
   pro/                        → Parcours pro (claim, contact, photos…)
   admin/                      → Panneaux admin (tableaux, stats, paramètres…)
   ui/                         → Design system (Button, Card, Input, Table, AlertBanner, Spinner…)
-  layout/                     → AppLogo, ClientShell, AdminShell, Sidebar, Navbar, ProPageHeader, SkipLink
+  layout/                     → AppLogo, ClientShell, ClientFooter, AdminShell, Sidebar, Navbar, ProPageHeader, SkipLink
   providers/                  → ThemeProvider (clair / sombre)
 
 services/                     → Couche données + orchestration métier
@@ -494,6 +567,8 @@ services/                     → Couche données + orchestration métier
 lib/
   auth/
     admin-session.ts          → requireAdminSession() pour server actions admin
+  legal-documents.ts          → Types, métadonnées et liens footer (sans fs)
+  get-legal-document.ts       → Lecture des .md côté serveur uniquement
   supabase/                   → client, server, admin, middleware, storage
   resend.ts                   → Client Resend
   telegram.ts                 → Notifications Telegram
@@ -502,12 +577,13 @@ emails/templates/             → Templates HTML transactionnels
   pro-workflow.ts             → Emails pro
   coverage-alert.ts           → Email alerte couverture admin
 
-hooks/                        → useCategorySearch, usePhotoUpload, useAddressAutocomplete
-
 types/                        → database.ts (schéma), index.ts (réexports + SupabaseDbClient)
 
 utils/                        → validation, geocoding, distance, mission-code, phone,
-                              coverage, invoices, admin-labels, datetime…
+                              coverage, invoices, admin-labels, datetime, markdown…
+
+hooks/                        → useCategorySearch, useCategoryMultiSearch, usePhotoUpload,
+                              useAddressAutocomplete
 
 supabase/migrations/          → Migrations SQL
 public/                       → logo.png, logo-dark.png, logo.svg (legacy)
@@ -596,6 +672,8 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 13. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
 14. **Design (étapes 07–08)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field`, `.dropdown-panel` et `FieldError` pour les erreurs. Retours globaux : `AlertBanner`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
 15. **Accessibilité** — `SkipLink` sur les layouts principaux ; champs avec label + `aria-invalid` / `aria-describedby` quand pertinent ; listbox avec `aria-label` et `aria-selected` sur les options.
+16. **Documents légaux** — le contenu public provient des fichiers `.md` à la racine ; ne pas dupliquer le texte dans les composants. Lecture serveur via `get-legal-document.ts` uniquement ; les composants client importent `lib/legal-documents.ts` (pas de `fs`). Mettre à jour `REGISTRE_RGPD.md` en parallèle des évolutions de traitement de données.
+17. **Création pro admin** — passer par `createProfessionalAction` avec adresse BAN vérifiée et catégories issues de `categoriesService` ; réutiliser `AddressAutocompleteField` et `CategoryMultiSearchField`.
 
 ---
 
@@ -608,11 +686,13 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 - **Paiement en ligne** — pas de Stripe, abonnements ni envoi automatique de factures
 - **Tests automatiques** — pas de suite de tests (lint + build manuels)
 - **Emails** — templates HTML en place, non validés dans tous les clients mail
+- **Documents légaux** — champs `[À COMPLÉTER]` à renseigner avant mise en production (éditeur, hébergeur, contacts, durées de conservation, etc.) ; `REGISTRE_RGPD.md` est interne et non lié depuis le site
 
 ---
 
 ## Prochaines étapes (non implémentées)
 
+- Compléter les placeholders des documents légaux et valider juridiquement avant lancement public
 - Liste blanche d'emails admin, rôles ou permissions granulaires
 - Réinitialisation / changement de mot de passe admin dans l'UI
 - Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro

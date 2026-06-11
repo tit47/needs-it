@@ -21,6 +21,8 @@ import type {
   RequestPhoto,
 } from "@/types";
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import { verifyBanAddress } from "@/utils/geocoding";
+import { isValidFrenchPhone, normalizePhone } from "@/utils/phone";
 import { isValidEmail } from "@/utils/validation";
 
 function revalidateAdmin() {
@@ -101,6 +103,131 @@ export async function updateProfessionalAction(
 
   const client = createAdminClient();
   const { error } = await professionalsService.update(client, id, data);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateAdmin();
+  return { success: true };
+}
+
+export async function createProfessionalAction(data: {
+  full_name: string;
+  email: string;
+  phone: string;
+  siren: string;
+  addressId: string;
+  addressLabel: string;
+  categories: string[];
+  radius_km: number;
+  active: boolean;
+}) {
+  const authError = await requireAdminSession();
+  if (authError) return authError;
+
+  const fullName = data.full_name.trim();
+  const email = data.email.trim();
+  const phone = normalizePhone(data.phone.trim());
+  const siren = data.siren.trim();
+  const categories = data.categories.map((item) => item.trim()).filter(Boolean);
+  const radiusKm = Number(data.radius_km);
+
+  if (!fullName) {
+    return { success: false, error: "Le nom est requis." };
+  }
+
+  if (!email) {
+    return { success: false, error: "L'email est requis." };
+  }
+
+  if (!isValidEmail(email)) {
+    return { success: false, error: "Format d'email invalide." };
+  }
+
+  if (!phone) {
+    return { success: false, error: "Le téléphone est requis." };
+  }
+
+  if (!isValidFrenchPhone(phone)) {
+    return { success: false, error: "Numéro de téléphone invalide." };
+  }
+
+  if (!siren) {
+    return { success: false, error: "Le SIREN est requis." };
+  }
+
+  if (!data.addressId || !data.addressLabel.trim()) {
+    return {
+      success: false,
+      error: "Veuillez sélectionner une adresse dans la liste.",
+    };
+  }
+
+  if (categories.length === 0) {
+    return {
+      success: false,
+      error: "Au moins une catégorie est requise.",
+    };
+  }
+
+  if (!Number.isFinite(radiusKm) || radiusKm < 1) {
+    return {
+      success: false,
+      error: "Le rayon d'intervention doit être d'au moins 1 km.",
+    };
+  }
+
+  const verifiedAddress = await verifyBanAddress(
+    data.addressId,
+    data.addressLabel.trim()
+  );
+
+  if (!verifiedAddress) {
+    return {
+      success: false,
+      error: "Adresse invalide. Veuillez la sélectionner à nouveau.",
+    };
+  }
+
+  const client = createAdminClient();
+
+  const { data: activeCategories } = await categoriesService.list(client);
+  const activeNames = new Set((activeCategories ?? []).map((category) => category.name));
+  const invalidCategories = categories.filter((name) => !activeNames.has(name));
+
+  if (invalidCategories.length > 0) {
+    return {
+      success: false,
+      error: "Une ou plusieurs catégories sélectionnées ne sont pas valides.",
+    };
+  }
+
+  const { data: existingPro } = await professionalsService.getBySiren(
+    client,
+    siren
+  );
+
+  if (existingPro) {
+    return {
+      success: false,
+      error: "Un professionnel avec ce SIREN existe déjà.",
+    };
+  }
+
+  const { error } = await professionalsService.create(client, {
+    full_name: fullName,
+    email,
+    phone,
+    address: verifiedAddress.label,
+    city: verifiedAddress.city,
+    latitude: verifiedAddress.latitude,
+    longitude: verifiedAddress.longitude,
+    siren,
+    categories,
+    radius_km: Math.round(radiusKm),
+    active: data.active,
+  });
 
   if (error) {
     return { success: false, error: error.message };

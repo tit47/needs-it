@@ -12,12 +12,22 @@ interface AddressAutocompleteFieldProps {
   selectedAddress: BanAddress | null;
   error?: string;
   onSelect: (address: BanAddress | null) => void;
+  inputId?: string;
+  label?: string;
+  hint?: string | null;
+  includeHiddenFields?: boolean;
+  namePrefix?: string;
 }
 
 export function AddressAutocompleteField({
   selectedAddress,
   error,
   onSelect,
+  inputId = "client-address",
+  label = "Adresse",
+  hint = "Sélectionnez votre adresse dans la liste. Votre adresse sert uniquement à trouver un professionnel proche et ne sera pas visible avant confirmation de la mission.",
+  includeHiddenFields = true,
+  namePrefix = "client",
 }: AddressAutocompleteFieldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,10 +64,10 @@ export function AddressAutocompleteField({
   return (
     <div ref={containerRef} className="relative flex w-full flex-col gap-2">
       <label
-        htmlFor="client-address"
+        htmlFor={inputId}
         className="text-sm font-medium text-[var(--color-card-foreground)]"
       >
-        Adresse
+        {label}
       </label>
 
       <div className="relative">
@@ -78,8 +88,8 @@ export function AddressAutocompleteField({
 
         <input
           ref={inputRef}
-          id="client-address"
-          name="clientAddressInput"
+          id={inputId}
+          name={`${namePrefix}AddressInput`}
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -89,7 +99,7 @@ export function AddressAutocompleteField({
           autoComplete="street-address"
           enterKeyHint="search"
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? fieldErrorId("client-address") : undefined}
+          aria-describedby={error ? fieldErrorId(inputId) : undefined}
           className={cn(
             "input-field pl-12 pr-12",
             selectedAddress && "border-green-500 focus-visible:border-green-500 focus-visible:shadow-[0_0_0_3px_rgba(34,197,94,0.2)]",
@@ -126,7 +136,7 @@ export function AddressAutocompleteField({
       )}
 
       {error && (
-        <FieldError id={fieldErrorId("client-address")} error={error} />
+        <FieldError id={fieldErrorId(inputId)} error={error} />
       )}
 
       {!selectedAddress && query.trim().length > 0 && query.trim().length < 3 && (
@@ -168,30 +178,42 @@ export function AddressAutocompleteField({
         </p>
       )}
 
-      {selectedAddress && (
+      {includeHiddenFields && selectedAddress && (
         <>
-          <input type="hidden" name="clientAddress" value={selectedAddress.label} />
-          <input type="hidden" name="clientPostalCode" value={selectedAddress.postcode} />
-          <input type="hidden" name="clientCity" value={selectedAddress.city} />
           <input
             type="hidden"
-            name="clientLatitude"
+            name={`${namePrefix}Address`}
+            value={selectedAddress.label}
+          />
+          <input
+            type="hidden"
+            name={`${namePrefix}PostalCode`}
+            value={selectedAddress.postcode}
+          />
+          <input
+            type="hidden"
+            name={`${namePrefix}City`}
+            value={selectedAddress.city}
+          />
+          <input
+            type="hidden"
+            name={`${namePrefix}Latitude`}
             value={String(selectedAddress.latitude)}
           />
           <input
             type="hidden"
-            name="clientLongitude"
+            name={`${namePrefix}Longitude`}
             value={String(selectedAddress.longitude)}
           />
-          <input type="hidden" name="clientAddressId" value={selectedAddress.id} />
+          <input
+            type="hidden"
+            name={`${namePrefix}AddressId`}
+            value={selectedAddress.id}
+          />
         </>
       )}
 
-      <p className="field-hint">
-        Sélectionnez votre adresse dans la liste. Votre adresse sert uniquement à
-        trouver un professionnel proche et ne sera pas visible avant confirmation
-        de la mission.
-      </p>
+      {hint && <p className="field-hint">{hint}</p>}
     </div>
   );
 }

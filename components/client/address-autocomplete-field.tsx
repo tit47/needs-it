@@ -87,12 +87,9 @@ export function AddressAutocompleteField({
           autoComplete="street-address"
           enterKeyHint="search"
           className={cn(
-            "h-14 w-full rounded-[var(--radius-input)] border border-[var(--color-border)]",
-            "bg-[var(--color-input)] pl-12 pr-12 text-base text-[var(--color-card-foreground)]",
-            "placeholder:text-[var(--color-muted)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-            selectedAddress && "border-green-500 focus-visible:ring-green-500",
-            error && "border-red-500 focus-visible:ring-red-500"
+            "input-field pl-12 pr-12",
+            selectedAddress && "border-green-500 focus-visible:border-green-500 focus-visible:shadow-[0_0_0_3px_rgba(34,197,94,0.2)]",
+            error && "input-field-error"
           )}
         />
 
@@ -134,7 +131,7 @@ export function AddressAutocompleteField({
 
       {showSuggestions && suggestions.length > 0 && (
         <ul
-          className="absolute top-[calc(100%+8px)] z-30 max-h-64 w-full overflow-y-auto rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg"
+          className="dropdown-panel absolute top-[calc(100%+8px)] z-30 max-h-64 w-full overflow-y-auto"
           role="listbox"
           aria-label="Suggestions d'adresses"
         >
@@ -159,7 +156,7 @@ export function AddressAutocompleteField({
       )}
 
       {showSuggestions && !isLoading && suggestions.length === 0 && (
-        <p className="absolute top-[calc(100%+8px)] z-30 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4 text-sm text-[var(--color-muted)] shadow-lg">
+        <p className="dropdown-panel absolute top-[calc(100%+8px)] z-30 w-full px-4 py-4 text-sm text-[var(--color-muted)]">
           Aucune adresse trouvée. Précisez votre saisie ou ajoutez le code postal.
         </p>
       )}

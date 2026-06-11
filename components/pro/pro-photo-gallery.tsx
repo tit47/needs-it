@@ -36,7 +36,7 @@ export function ProPhotoGallery({ photoUrls }: ProPhotoGalleryProps) {
         {validPhotoUrls.map((url, index) => (
           <div
             key={`${url}-${index}`}
-            className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-black/5"
+            className="photo-thumbnail relative aspect-[4/3] bg-black/5"
           >
             <Image
               src={url}

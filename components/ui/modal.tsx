@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
-import { Button } from "./button";
 
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }
 
@@ -42,6 +42,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       <button
         type="button"
         className="absolute inset-0 bg-black/50"
+        style={{ animation: "backdrop-enter 200ms ease-out" }}
         aria-label="Fermer"
         onClick={onClose}
       />
@@ -50,6 +51,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           "relative z-10 w-full max-w-lg card-surface p-6",
           className
         )}
+        style={{ animation: "modal-enter 250ms ease-out" }}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           {title && (

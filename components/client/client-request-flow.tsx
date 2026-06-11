@@ -9,7 +9,7 @@ import { LandingHero } from "@/components/client/landing-hero";
 import { PhotoUploadGrid } from "@/components/client/photo-upload-grid";
 import { RequestConfirmation } from "@/components/client/request-confirmation";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/types";
@@ -123,11 +123,18 @@ export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 pb-10">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-10 pb-6">
       <LandingHero onScrollToForm={scrollToForm} />
 
       <div ref={formSectionRef} id="request-form" className="scroll-mt-6 overflow-visible">
         <Card className="overflow-visible">
+          <CardHeader>
+            <CardTitle>Décrivez votre besoin</CardTitle>
+            <CardDescription>
+              Quelques informations suffisent pour trouver le bon professionnel.
+            </CardDescription>
+          </CardHeader>
+
           <form
             onSubmit={(event) => void handleSubmit(event)}
             className="space-y-5"
@@ -176,9 +183,7 @@ export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
             />
 
             {submitError && (
-              <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-300">
-                {submitError}
-              </p>
+              <p className="alert-banner alert-banner-error">{submitError}</p>
             )}
 
             <Button

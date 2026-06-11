@@ -46,11 +46,15 @@ export function StatCards({ stats }: { stats: DashboardStats }) {
       {statConfig.map(({ key, title, icon: Icon, format }) => (
         <Card key={key}>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{title}</CardTitle>
-              <Icon className="h-5 w-5 text-[var(--color-accent)]" />
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="text-sm font-medium leading-snug text-[var(--color-muted)]">
+                {title}
+              </CardTitle>
+              <div className="stat-icon-wrap shrink-0">
+                <Icon className="h-5 w-5 text-[var(--color-card-foreground)]" />
+              </div>
             </div>
-            <p className="text-3xl font-bold">{format(stats[key])}</p>
+            <p className="text-3xl font-bold tracking-tight">{format(stats[key])}</p>
           </CardHeader>
         </Card>
       ))}

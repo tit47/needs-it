@@ -130,12 +130,9 @@ export function CategorySearchField({
           placeholder="Ex : plom, elec, chauff…"
           autoComplete="off"
           className={cn(
-            "h-14 w-full rounded-[var(--radius-input)] border border-[var(--color-border)]",
-            "bg-[var(--color-input)] text-base text-[var(--color-card-foreground)]",
-            "placeholder:text-[var(--color-muted)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-            selectedCategory ? "pl-12 pr-10" : "px-4",
-            error && "border-red-500 focus-visible:ring-red-500"
+            "input-field",
+            selectedCategory ? "pl-12 pr-10" : "",
+            error && "input-field-error"
           )}
         />
 
@@ -152,7 +149,7 @@ export function CategorySearchField({
 
         {isOpen && filteredCategories.length > 0 && (
           <ul
-            className="absolute top-[calc(100%+8px)] z-20 max-h-56 w-full overflow-y-auto rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg"
+            className="dropdown-panel absolute top-[calc(100%+8px)] z-20 max-h-56 w-full overflow-y-auto"
             role="listbox"
           >
             {filteredCategories.map((category) => (
@@ -178,7 +175,7 @@ export function CategorySearchField({
         )}
 
         {isOpen && search && filteredCategories.length === 0 && (
-          <p className="absolute top-[calc(100%+8px)] z-20 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)] shadow-lg">
+          <p className="dropdown-panel absolute top-[calc(100%+8px)] z-20 w-full px-4 py-3 text-sm text-[var(--color-muted)]">
             Aucune catégorie trouvée.
           </p>
         )}

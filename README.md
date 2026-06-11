@@ -2,7 +2,7 @@
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01, 02, 03, 04, 05 et 06 terminées.**  
+**État du projet : étapes 01, 02, 03, 04, 05, 06 et 07 terminées.**  
 Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
 
 ---
@@ -58,13 +58,26 @@ Fichiers (dans l'ordre) :
 3. `20250610000000_pro_workflow.sql` — liens sécurisés pro (`request_professional_links`)
 4. `20250610000001_app_settings.sql` — paramètres applicatifs (`app_settings`)
 
+### Assets graphiques
+
+Les logos officiels sont dans `public/` :
+
+- `logo.png` — logo clair (fond turquoise, page client, espace pro)
+- `logo-dark.png` — logo sombre (fond crème, interface admin)
+
+Pour recopier depuis le dossier `Images` du projet :
+
+```bash
+node scripts/copy-brand-assets.js
+```
+
 ---
 
 ## Avancement par étape
 
 ### Étape 01 — Architecture ✅
 
-- Structure Next.js App Router, design system Tailwind (mobile first)
+- Structure Next.js App Router, design system Tailwind (mobile first — voir étape 07 pour l'harmonisation visuelle complète)
 - Schéma PostgreSQL Supabase (UUID, pas de suppression, statuts + historique)
 - Clients Supabase (`lib/supabase/`), services de données, types TypeScript
 - Shell admin (layout, sidebar, navbar)
@@ -143,13 +156,6 @@ Fichiers (dans l'ordre) :
   - Grille couverture par catégorie (nombre de pros actifs, badge couleur)
   - Tableau ville × catégorie : demandes, satisfaites, taux, couverture, priorité, résolution
 
-**Non implémenté dans cette étape :**
-
-- Authentification admin (accès `/admin` non protégé par login)
-- Extension de recherche (`search_extended`) si aucun pro trouvé
-- Les emails transactionnels pro utilisent toujours `RESEND_FROM_EMAIL` / défaut Resend (pas `app_settings.sender_email`)
-- Statut `completed` / clôture de mission côté pro ou admin
-
 **Fichiers clés :**
 
 - `services/coverage.service.ts`, `services/alerts.service.ts` (extensions)
@@ -162,7 +168,7 @@ Fichiers (dans l'ordre) :
 ### Étape 06 — Facturation ✅
 
 - **Principe V1** : chaque mission validée (prise via code) génère un montant dû par le professionnel ; le prix unitaire est celui des **Paramètres** (`mission_price_eur`, 5 € par défaut)
-- **Enregistrement automatique** à la prise de mission : incrément mensuel dans `invoices` (déjà branché à l'étape 03 via `prepareMissionBilling`)
+- **Enregistrement automatique** à la prise de mission : incrément mensuel dans `invoices` (branché à l'étape 03 via `prepareMissionBilling`)
 - **Facturation manuelle** : pas d'envoi automatique de facture ni de paiement en ligne
 - **Page Facturation** (`/admin/facturation`) :
   - Tableau : professionnel, mois, missions, montant dû, état, facture envoyée, payée
@@ -174,10 +180,6 @@ Fichiers (dans l'ordre) :
 **Non implémenté dans cette étape :**
 
 - Paiement automatique, Stripe, abonnements, envoi automatique de factures
-- Authentification admin (accès `/admin` non protégé par login)
-- Extension de recherche (`search_extended`) si aucun pro trouvé
-- Les emails transactionnels pro utilisent toujours `RESEND_FROM_EMAIL` / défaut Resend (pas `app_settings.sender_email`)
-- Statut `completed` / clôture de mission côté pro ou admin
 
 **Fichiers clés :**
 
@@ -188,6 +190,73 @@ Fichiers (dans l'ordre) :
 - `app/actions/admin.ts` (`markInvoiceSentAction`, `markInvoicePaidAction`)
 - `components/admin/professionals-panel.tsx` (historique paiements)
 - `components/admin/status-badges.tsx` (`InvoiceStatusBadge`)
+
+### Étape 07 — Design et UX ✅
+
+Harmonisation visuelle de **toute** l'application (client, pro, admin). **Aucune nouvelle fonctionnalité métier** — uniquement cohérence, lisibilité, espacements, états visuels et transitions.
+
+**Objectif :** moderniser l'interface (mobile first, inspirée Uber / Airbnb / Doctolib) en conservant l'identité Need's it et les logos officiels du dossier `Images`.
+
+**Design system** (`app/globals.css`) :
+
+| Token / élément | Light | Dark |
+|-----------------|-------|------|
+| Fond | `#7CC9D4` | `#121212` |
+| Texte principal | `#F8F6EE` | `#F8F6EE` |
+| Cartes | `#F8F6EE` | `#1D1D1D` |
+| Boutons | `#0C2F3D` | `#FF9A4A` |
+| Accent | `#E9CB72` | `#7CC9D4` |
+| Police | Inter (via `next/font`) | idem |
+| Boutons | très arrondis (`--radius-button`), grande taille, ombre légère | idem |
+| Inputs | coins arrondis (`--radius-input`), hauteur 56 px, focus bleu foncé | idem |
+
+Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-field-error`, `.photo-thumbnail`, `.dropdown-panel`, `.alert-banner`, `.alert-banner-error`, `.alert-banner-info`, `.nav-item-active`, `.stat-icon-wrap`.
+
+**Composants UI affinés** (`components/ui/`) :
+
+- `Button` — ombre, transition, feedback au clic
+- `Input` / `Textarea` — basés sur `.input-field`
+- `Table` — en-têtes lisibles, survol des lignes, scroll horizontal mobile
+- `Badge`, `Modal` (animation d'entrée), `Card`
+
+**Identité graphique** :
+
+- `AppLogo` — variante `on-brand` (logo clair sur fond turquoise) ou `on-surface` (logo sombre sur fond crème)
+- Assets dans `public/logo.png` et `public/logo-dark.png`
+- Favicon via `metadata.icons` dans `app/layout.tsx` (pointe vers `/logo.png`)
+- Script `scripts/copy-brand-assets.js` pour recopier depuis `../Images`
+
+**Layouts harmonisés** (`components/layout/`) :
+
+| Composant | Usage |
+|-----------|-------|
+| `ClientShell` | Enveloppe `/` : navbar + bascule clair/sombre (`ThemeProvider`) |
+| `Navbar` | Barre sticky partagée (logo + thème) |
+| `AdminShell` + `Sidebar` | Back-office : logo sombre, navigation active cohérente |
+| `ProPageHeader` | En-tête uniforme `/pro/[token]` |
+
+**Par zone :**
+
+- **Client** — formulaire avec titre « Décrivez votre besoin », champs catégorie/adresse unifiés (`.input-field`, `.dropdown-panel`), grilles photos (`.photo-thumbnail`), messages d'erreur (`.alert-banner-error`)
+- **Pro** — en-tête avec logo, cartes et galerie photos alignées sur le design system
+- **Admin** — cartes stats avec icônes en pastille, tableaux modernisés, modales animées, espacements revus
+
+**Non implémenté dans cette étape :**
+
+- Nouvelles pages ou parcours métier
+- Refonte complète de l'architecture (composants et services existants réutilisés)
+
+**Fichiers clés :**
+
+- `app/globals.css`, `app/layout.tsx`, `app/page.tsx` (via `ClientShell`)
+- `components/ui/*`
+- `components/layout/app-logo.tsx`, `client-shell.tsx`, `pro-page-header.tsx`, `navbar.tsx`, `sidebar.tsx`, `admin-shell.tsx`
+- `components/providers/theme-provider.tsx`
+- `components/client/landing-hero.tsx`, `client-request-flow.tsx`, `photo-upload-grid.tsx`
+- `components/client/category-search-field.tsx`, `address-autocomplete-field.tsx`
+- `components/admin/stat-cards.tsx`, `admin-page-header.tsx`
+- `public/logo.png`, `public/logo-dark.png`
+- `scripts/copy-brand-assets.js`
 
 ---
 
@@ -201,6 +270,7 @@ Fichiers (dans l'ordre) :
 | Upload photos | ✅ |
 | Autocomplete adresse BAN | ✅ |
 | Code mission affiché après envoi | ✅ |
+| Barre de navigation + bascule clair/sombre | ✅ |
 | Compte client | ❌ (non prévu V1) |
 
 ### Côté professionnel (`/pro/[token]`)
@@ -213,6 +283,7 @@ Fichiers (dans l'ordre) :
 | Adresse complète après confirmation | ✅ |
 | Libération de mission | ✅ |
 | Emails transactionnels | ✅ (si Resend configuré) |
+| Interface harmonisée (design system étape 07) | ✅ |
 
 ### Côté admin (`/admin/*`)
 
@@ -225,7 +296,8 @@ Fichiers (dans l'ordre) :
 | `/admin/alertes` | ✅ Liste filtrable, détail, résolution |
 | `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
 | `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
-| `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée |
+| `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée / annuler paiement |
+| Interface harmonisée (design system étape 07) | ✅ |
 | Authentification admin | ❌ (middleware Supabase préparé, login à venir) |
 
 ### API
@@ -278,7 +350,9 @@ Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, fact
 
 ```
 app/
-  page.tsx                    → Landing + formulaire client
+  page.tsx                    → Landing + formulaire client (via ClientShell)
+  layout.tsx                  → Layout racine, metadata, ThemeProvider
+  globals.css                 → Design system (tokens CSS, utilitaires)
   actions/
     create-request.ts         → Création demande (server action)
     pro-workflow.ts           → Prise / libération mission (server actions)
@@ -291,8 +365,9 @@ components/
   client/                     → Parcours client (formulaire, confirmation…)
   pro/                        → Parcours pro (claim, contact, photos…)
   admin/                      → Panneaux admin (tableaux, stats, paramètres…)
-  ui/                         → Design system (Button, Card, Input…)
-  layout/                     → AdminShell, Sidebar, Navbar
+  ui/                         → Design system (Button, Card, Input, Table…)
+  layout/                     → AppLogo, ClientShell, AdminShell, Sidebar, Navbar, ProPageHeader
+  providers/                  → ThemeProvider (clair / sombre)
 
 services/                     → Couche données + orchestration métier
   matching.service.ts         → Recherche pros par catégorie/distance
@@ -327,7 +402,8 @@ utils/                        → validation, geocoding, distance, mission-code,
                               coverage, invoices, admin-labels, datetime…
 
 supabase/migrations/          → Migrations SQL
-public/                       → Assets statiques
+public/                       → logo.png, logo-dark.png, logo.svg (legacy)
+scripts/                      → copy-brand-assets.js
 ```
 
 ---
@@ -401,7 +477,7 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 2. **Pas de compte pro** — accès uniquement via lien sécurisé reçu par email.
 3. **Le téléphone + code mission** garantissent un échange réel avant dévoilement de l'adresse.
 4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client.
-5. **Design system** — réutiliser `components/ui/*`, tokens CSS dans `app/globals.css` (`--color-primary`, `--radius-card`, etc.).
+5. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
 6. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
 7. **Historique** — tracer les actions significatives via `eventsService.log()`.
 8. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
@@ -409,6 +485,17 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 10. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
 11. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
 12. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
+13. **Design (étape 07)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field` et `.dropdown-panel`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
+
+---
+
+## Limites connues (V1)
+
+- **Authentification admin** — accès `/admin` non protégé par login (middleware Supabase préparé)
+- **Emails pro** — utilisent `RESEND_FROM_EMAIL` / défaut Resend, pas `app_settings.sender_email`
+- **Extension de recherche** — pas de `search_extended` si aucun pro trouvé
+- **Clôture de mission** — statut `completed` prévu en schéma, pas encore exposé dans l'UI pro ou admin
+- **Paiement en ligne** — pas de Stripe, abonnements ni envoi automatique de factures
 
 ---
 
@@ -418,6 +505,7 @@ Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de cr
 - Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro
 - Extension de recherche (`search_extended`) si aucun pro trouvé
 - Statut `completed` / clôture de mission côté pro ou admin
+- Paiement automatique, Stripe, abonnements, facturation automatique
 
 ---
 
@@ -428,4 +516,6 @@ npm run dev      # Développement
 npm run build    # Build production
 npm run start    # Serveur production
 npm run lint     # ESLint
+
+node scripts/copy-brand-assets.js   # Recopie logo.png et logo-dark.png depuis ../Images
 ```

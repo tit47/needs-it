@@ -1,4 +1,5 @@
 import { ClientRequestFlow } from "@/components/client/client-request-flow";
+import { ClientShell } from "@/components/layout/client-shell";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { categoriesService } from "@/services/categories.service";
@@ -9,7 +10,7 @@ export default async function HomePage() {
 
   if (error || !categories?.length) {
     return (
-      <main className="min-h-screen px-4 py-8">
+      <ClientShell>
         <div className="mx-auto max-w-lg">
           <Card className="text-center">
             <p className="text-sm text-[var(--color-muted)]">
@@ -18,13 +19,13 @@ export default async function HomePage() {
             </p>
           </Card>
         </div>
-      </main>
+      </ClientShell>
     );
   }
 
   return (
-    <main className="min-h-screen px-4 py-8">
+    <ClientShell>
       <ClientRequestFlow categories={categories} />
-    </main>
+    </ClientShell>
   );
 }

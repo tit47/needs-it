@@ -6,6 +6,7 @@ import {
   ProRequestDetails,
   ProUnavailableState,
 } from "@/components/pro";
+import { ProPageHeader } from "@/components/layout/pro-page-header";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveProPageView } from "@/services/pro-workflow.service";
 
@@ -102,13 +103,8 @@ function ProPageShell({
 }) {
   return (
     <main className="min-h-screen px-4 py-8">
-      <div className="mx-auto flex max-w-lg flex-col gap-6">
-        <header className="text-center">
-          <p className="text-sm font-medium uppercase tracking-wide opacity-80">
-            Need&apos;s it
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">{title}</h1>
-        </header>
+      <div className="mx-auto flex max-w-lg flex-col gap-8">
+        <ProPageHeader title={title} />
         {children}
       </div>
     </main>

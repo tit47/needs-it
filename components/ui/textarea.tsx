@@ -25,12 +25,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={textareaId}
           className={cn(
-            "min-h-[120px] w-full rounded-[var(--radius-input)] border border-[var(--color-border)]",
-            "bg-[var(--color-input)] px-4 py-3 text-base text-[var(--color-card-foreground)]",
-            "placeholder:text-[var(--color-muted)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-red-500 focus-visible:ring-red-500",
+            "input-field min-h-[120px] py-3",
+            error && "input-field-error",
             className
           )}
           {...props}

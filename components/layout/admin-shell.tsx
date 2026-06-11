@@ -15,12 +15,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       />
       <div className="flex min-h-screen flex-1 flex-col">
         <Navbar
-          title="Need's it Admin"
           showMenuButton
+          logoVariant="on-surface"
           onMenuClick={() => setMobileMenuOpen(true)}
-          className="bg-[var(--color-card)] text-[var(--color-card-foreground)]"
         />
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

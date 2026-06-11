@@ -6,9 +6,12 @@ export function Table({
   ...props
 }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto rounded-[var(--radius-card)]">
+    <div className="w-full overflow-x-auto rounded-[var(--radius-input)]">
       <table
-        className={cn("w-full min-w-[640px] border-collapse text-left text-sm", className)}
+        className={cn(
+          "w-full min-w-[640px] border-collapse text-left text-sm",
+          className
+        )}
         {...props}
       />
     </div>
@@ -19,14 +22,27 @@ export function TableHeader({
   className,
   ...props
 }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("border-b border-[var(--color-border)]", className)} {...props} />;
+  return (
+    <thead
+      className={cn(
+        "border-b border-[var(--color-border)] bg-black/[0.02] dark:bg-white/[0.03]",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
 export function TableBody({
   className,
   ...props
 }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("divide-y divide-[var(--color-border)]", className)} {...props} />;
+  return (
+    <tbody
+      className={cn("divide-y divide-[var(--color-border)]", className)}
+      {...props}
+    />
+  );
 }
 
 export function TableRow({
@@ -36,7 +52,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]",
+        "transition-colors duration-150 hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
         className
       )}
       {...props}
@@ -51,7 +67,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]",
+        "px-4 py-3.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]",
         className
       )}
       {...props}
@@ -65,7 +81,10 @@ export function TableCell({
 }: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn("px-4 py-4 text-[var(--color-card-foreground)]", className)}
+      className={cn(
+        "px-4 py-4 text-[var(--color-card-foreground)] align-middle",
+        className
+      )}
       {...props}
     />
   );
@@ -74,7 +93,10 @@ export function TableCell({
 export function TableEmpty({ message }: { message: string }) {
   return (
     <TableRow>
-      <TableCell colSpan={100} className="py-12 text-center text-[var(--color-muted)]">
+      <TableCell
+        colSpan={100}
+        className="py-16 text-center text-[var(--color-muted)]"
+      >
         {message}
       </TableCell>
     </TableRow>

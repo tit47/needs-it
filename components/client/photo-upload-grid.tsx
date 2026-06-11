@@ -45,7 +45,7 @@ export function PhotoUploadGrid({ onPhotosChange, error }: PhotoUploadGridProps)
         {photos.map((photo) => (
           <div
             key={photo.id}
-            className="relative aspect-square overflow-hidden rounded-2xl border border-[var(--color-border)]"
+            className="photo-thumbnail relative aspect-square"
           >
             <Image
               src={photo.previewUrl}
@@ -71,9 +71,9 @@ export function PhotoUploadGrid({ onPhotosChange, error }: PhotoUploadGridProps)
             disabled={isProcessing}
             onClick={() => inputRef.current?.click()}
             className={cn(
-              "flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl",
+              "photo-thumbnail flex aspect-square flex-col items-center justify-center gap-1",
               "border-2 border-dashed border-[var(--color-border)] text-[var(--color-muted)]",
-              "transition-colors hover:border-[var(--color-ring)] hover:text-[var(--color-card-foreground)]",
+              "transition-colors duration-150 hover:border-[var(--color-ring)] hover:text-[var(--color-card-foreground)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
           >

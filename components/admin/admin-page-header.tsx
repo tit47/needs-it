@@ -14,11 +14,13 @@ export function AdminPageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)] sm:text-3xl">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-sm opacity-80">{description}</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed opacity-80">
+            {description}
+          </p>
         )}
       </div>
       {action}

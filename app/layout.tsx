@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   },
   description:
     "Décrivez votre problème, un professionnel vous contactera.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {

@@ -76,7 +76,7 @@ export function RequestConfirmation({ missionCode }: RequestConfirmationProps) {
           )}
         </Button>
 
-        <p className="rounded-2xl bg-black/5 px-4 py-3 text-sm dark:bg-white/5">
+        <p className="alert-banner alert-banner-info">
           Gardez votre téléphone à proximité.
           <br />
           Vous pouvez fermer cette page.

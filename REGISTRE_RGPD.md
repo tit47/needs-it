@@ -16,16 +16,16 @@ Aucun DPO désigné (non obligatoire au regard de l'activité actuelle)
 ## Synthèse de l'architecture technique
 
 
-| Composant                                              | Rôle                                          | Données concernées                                                             |
-| ------------------------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Next.js 15** (application web)                       | Interface client, pro, admin ; server actions | Données transitant via les formulaires et API internes                         |
-| **Supabase** (PostgreSQL)                              | Stockage principal                            | Demandes, professionnels, candidats, factures, événements, alertes, paramètres |
-| **Supabase Storage** (bucket `request-photos`, public) | Stockage des photos de demandes               | Images uploadées par les clients                                               |
-| **Supabase Auth**                                      | Authentification admin                        | E-mail et session des administrateurs                                          |
-| **Resend**                                             | E-mails transactionnels                       | E-mails pros et alertes admin                                                  |
-| **Telegram** (optionnel)                               | Notifications internes couverture             | Alertes agrégées (ville, catégorie, message)                                   |
-| **API BAN** (`api-adresse.data.gouv.fr`)               | Autocomplétion et vérification d'adresse      | Vercel Inc.                                                                    |
-| **Hébergeur applicatif**                               | Déploiement Next.js                           | Vercel Inc.                                                                    |
+| Composant                                           | Rôle                                          | Données concernées                                                             |
+| --------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Next.js 15** (application web)                    | Interface client, pro, admin ; server actions | Données transitant via les formulaires et API internes                         |
+| **Supabase** (PostgreSQL)                           | Stockage principal                            | Demandes, professionnels, candidats, factures, événements, alertes, paramètres |
+| **Supabase Storage (bucket request-photos, privé)** | Stockage des photos de demandes               | Images uploadées par les clients                                               |
+| **Supabase Auth**                                   | Authentification admin                        | E-mail et session des administrateurs                                          |
+| **Resend**                                          | E-mails transactionnels                       | E-mails pros et alertes admin                                                  |
+| **Telegram** (optionnel)                            | Notifications internes couverture             | Alertes agrégées (ville, catégorie, message)                                   |
+| **API BAN** (`api-adresse.data.gouv.fr`)            | Autocomplétion et vérification d'adresse      | Vercel Inc.                                                                    |
+| **Hébergeur applicatif**                            | Déploiement Next.js                           | Vercel Inc.                                                                    |
 
 
 **Philosophie base de données (V1) :** pas de suppression automatique des enregistrements ; conservation par statuts et historique (`request_events`, `claims`).
@@ -45,9 +45,9 @@ Aucun DPO désigné (non obligatoire au regard de l'activité actuelle)
 | **Destinataires externes**             | Professionnels éligibles (nom, tél, description, photos ; adresse après claim), Supabase, Resend (contenu des e-mails), API BAN (vérification adresse)                                                                                                   |
 | **Transferts hors UE**                 | Transferts encadrés par les garanties contractuelles mises en place par les sous-traitants, notamment les clauses contractuelles types (SCC) lorsque nécessaire.                                                                                         |
 | **Durée de conservation**              | 3 ans après la dernière activité sur la demande.                                                                                                                                                                                                         |
-| **Mesures de sécurité**                | Validation serveur, adresse obligatoirement sélectionnée dans BAN, masquage adresse avant claim, code mission, accès admin protégé, stockage Supabase                                                                                                    |
+| **Mesures de sécurité**                | Validation serveur, adresse obligatoirement sélectionnée dans BAN, masquage de l'adresse avant claim, code mission, accès admin protégé, stockage Supabase et photos stockées dans un bucket privé avec accès via URLs signées temporaires.              |
 | **Base légale**                        | Art. 6.1.b RGPD (mesures précontractuelles / exécution du service demandé) ; art. 6.1.f (sécurisation de la mise en relation)                                                                                                                            |
-| **Droits des personnes**               | Accès, rectification, effacement, limitation, opposition — contact : su0r44n@gmail.com                                                                                                                                                                   |
+| **Droits des personnes**               | Accès, rectification, effacement, limitation, opposition — contact : [su0r44n@gmail.com](mailto:su0r44n@gmail.com)                                                                                                                                       |
 | **Référence technique**                | `app/actions/create-request.ts`, tables `requests`, `request_photos`, bucket `request-photos`                                                                                                                                                            |
 
 
@@ -250,16 +250,14 @@ Aucun DPO désigné (non obligatoire au regard de l'activité actuelle)
 ## Analyse d'impact (AIPD / DPIA)
 
 
-| Traitement                      | AIPD requise ?                                                                    | Commentaire                                                                                                               |
-| ------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Demandes clients + photos       | AIPD non jugée nécessaire à ce stade, à réévaluer lors de l'évolution du service. | Données de localisation précises ; photos potentiellement sensibles (intérieur domicile)                                  |
-| Workflow pro + masquage adresse | Non attendue ; mesures de protection intégrées (code mission, adresse masquée).   | Mesure de protection intégrée (code mission)                                                                              |
-| Stockage photos (bucket public) | **Analyse de sécurité en cours ; évolution vers un bucket privé recommandée.**    | Les URLs de photos sont publiquement accessibles via Supabase Storage — risque de confidentialité à documenter et mitiger |
-| Facturation                     | Non attendu                                                                       | Données limitées, finalité claire                                                                                         |
-| Auth admin                      | Non attendu                                                                       | Accès restreint                                                                                                           |
+| Traitement                      | AIPD requise ?                                                                    | Commentaire                                                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Demandes clients + photos       | AIPD non jugée nécessaire à ce stade, à réévaluer lors de l'évolution du service. | Données de localisation précises ; photos potentiellement sensibles (intérieur domicile)                                                                    |
+| Workflow pro + masquage adresse | Non attendue ; mesures de protection intégrées (code mission, adresse masquée).   | Mesure de protection intégrée (code mission)                                                                                                                |
+| Stockage photos (bucket public) | Mesure mise en œuvre.                                                             | Les photos sont stockées dans un bucket Supabase privé et accessibles uniquement via des URLs signées temporaires générées pour les utilisateurs autorisés. |
+| Facturation                     | Non attendu                                                                       | Données limitées, finalité claire                                                                                                                           |
+| Auth admin                      | Non attendu                                                                       | Accès restreint                                                                                                                                             |
 
-
-**Action recommandée :** documenter la justification du bucket `request-photos` public et les mesures compensatoires (URLs non listées publiquement, tokens pro pour l'accès métier).
 
 ---
 
@@ -270,6 +268,7 @@ Aucun DPO désigné (non obligatoire au regard de l'activité actuelle)
 - Protection routes admin par middleware et session Supabase Auth
 - Validation des entrées (téléphone FR, description min. 10 caractères, max 5 photos, 8 Mo avant compression)
 - Compression images côté client (max 1200 px, JPEG 82 %)
+- Photos stockées dans un bucket Supabase privé avec accès contrôlé via URLs signées temporaires.
 - Cron rappels sécurisé par `CRON_SECRET` (optionnel)
 - Pas de suppression automatique — procédure manuelle de purge à définir
 
@@ -284,8 +283,8 @@ Aucun DPO désigné (non obligatoire au regard de l'activité actuelle)
 | Notification de violation de données (art. 33-34 RGPD)                                 | Notification à la CNIL dans les 72 heures lorsque requis par le RGPD.                                                                                                                                                                        |
 | Politique de conservation et purge                                                     | Durées de conservation définies dans la politique de confidentialité.Suppression ou anonymisation des données à l'issue des durées applicables.Purge réalisée manuellement en V1 ; automatisation à l'étude.                               |
 | Registre des sous-traitants et DPAs                                                    | Registre des sous-traitants tenu à jour.DPA et engagements contractuels standards acceptés auprès des prestataires concernés (Supabase, Resend, Vercel lorsque applicable).Révision lors de l'ajout d'un nouveau sous-traitant.            |
-| Information des personnes (politique de confidentialité publiée + lien dans le footer) | Bucket privé Supabase avec accès contrôlé et URLs signées temporaires.                                                                                                                                                                       |
-| Analyse du bucket photos public                                                        | Bucket privé Supabase avec accès contrôlé et URLs signées temporaires.                                                                                                                                                                       |
+| Information des personnes (politique de confidentialité publiée + lien dans le footer) | Politique de confidentialité publiée sur le site et accessible depuis le footer.Information fournie lors de la collecte des données.                                                                                                        |
+|                                                                                        |                                                                                                                                                                                                                                              |
 | Médiateur de la consommation (si B2C)                                                  | Adhésion à un médiateur de la consommation à finaliser avant commercialisation du service auprès des consommateurs.                                                                                                                          |
 | CGU acceptées / accessibles depuis le site                                             | CGU et politique de confidentialité publiées et accessibles depuis le footer du site.Acceptation réputée lors de l'utilisation du service.Pour les professionnels référencés, acceptation explicite recueillie lors de leur référencement. |
 

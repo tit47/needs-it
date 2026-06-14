@@ -9,6 +9,7 @@ import {
 import { ProPageHeader } from "@/components/layout/pro-page-header";
 import { SkipLink } from "@/components/layout/skip-link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createSignedPhotoUrls } from "@/lib/supabase/storage";
 import { resolveProPageView } from "@/services/pro-workflow.service";
 
 interface ProPageProps {
@@ -54,7 +55,8 @@ export default async function ProPage({ params }: ProPageProps) {
   }
 
   if (view.kind === "claimed_by_you") {
-    console.log("[ProPage] claimed_by_you photoUrls:", view.photoUrls);
+    const photoUrls = await createSignedPhotoUrls(client, view.requestPhotos);
+
     return (
       <ProPageShell title="Mission confirmée">
         <div className="flex flex-col gap-6">
@@ -63,7 +65,7 @@ export default async function ProPage({ params }: ProPageProps) {
             distanceKm={view.distanceKm}
             description={view.description}
           />
-          <ProPhotoGallery photoUrls={view.photoUrls} />
+          <ProPhotoGallery photoUrls={photoUrls} />
           <ProClientContact
             clientName={view.clientName}
             clientPhone={view.clientPhone}
@@ -77,7 +79,7 @@ export default async function ProPage({ params }: ProPageProps) {
     );
   }
 
-  console.log("[ProPage] pending photoUrls:", view.photoUrls);
+  const photoUrls = await createSignedPhotoUrls(client, view.requestPhotos);
 
   return (
     <ProPageShell title="Nouvelle demande">
@@ -87,7 +89,7 @@ export default async function ProPage({ params }: ProPageProps) {
           distanceKm={view.distanceKm}
           description={view.description}
         />
-        <ProPhotoGallery photoUrls={view.photoUrls} />
+        <ProPhotoGallery photoUrls={photoUrls} />
         <ProClientContact
           clientName={view.clientName}
           clientPhone={view.clientPhone}

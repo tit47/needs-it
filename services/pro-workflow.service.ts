@@ -142,6 +142,7 @@ export type ProPageView =
       categoryName: string;
       distanceKm: number;
       description: string;
+      requestPhotos: { photo_url: string }[];
       photoUrls: string[];
       clientName: string;
       clientPhone: string;
@@ -152,6 +153,7 @@ export type ProPageView =
       categoryName: string;
       distanceKm: number;
       description: string;
+      requestPhotos: { photo_url: string }[];
       photoUrls: string[];
       clientName: string;
       clientPhone: string;
@@ -173,14 +175,14 @@ export async function resolveProPageView(
 
   const request = link.requests;
   const categoryName = request.categories?.name ?? "Demande";
-  const photoUrls = await getSignedPhotoUrls(client, request.request_photos);
-  console.log("[resolveProPageView] request_photos raw:", request.request_photos);
-  console.log("[resolveProPageView] photoUrls signed:", photoUrls);
+  const requestPhotos = request.request_photos ?? [];
+  const photoUrls = await getSignedPhotoUrls(client, requestPhotos);
   const baseDetails = {
     link,
     categoryName,
     distanceKm: link.distance_km,
     description: request.description,
+    requestPhotos,
     photoUrls,
     clientName: request.client_name,
     clientPhone: request.client_phone,

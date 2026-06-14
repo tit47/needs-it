@@ -16,8 +16,6 @@ interface ProPageProps {
   params: Promise<{ token: string }>;
 }
 
-export const dynamic = "force-dynamic";
-
 export default async function ProPage({ params }: ProPageProps) {
   const { token } = await params;
   const client = createAdminClient();
@@ -85,9 +83,6 @@ export default async function ProPage({ params }: ProPageProps) {
 
   return (
     <ProPageShell title="Nouvelle demande">
-      <p className="rounded-lg border-2 border-red-600 bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-900">
-        PRO PAGE DEBUG — commit 5db3c09+force-dynamic — signedUrls: {photoUrls.length}
-      </p>
       <div className="flex flex-col gap-6">
         <ProRequestDetails
           categoryName={view.categoryName}

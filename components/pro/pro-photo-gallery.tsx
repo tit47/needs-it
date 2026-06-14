@@ -11,17 +11,26 @@ function isSignedPhotoUrl(url: string): boolean {
 export function ProPhotoGallery({ photoUrls }: ProPhotoGalleryProps) {
   const displayUrls = photoUrls.filter(isSignedPhotoUrl);
 
-  if (!displayUrls.length) return null;
-
   return (
     <Card padding="sm">
-      <CardHeader>
-        <CardTitle>Photos</CardTitle>
-        <CardDescription>
-          {displayUrls.length} photo{displayUrls.length > 1 ? "s" : ""} jointe
-          {displayUrls.length > 1 ? "s" : ""}
-        </CardDescription>
-      </CardHeader>
+      <p className="mb-3 rounded-lg bg-red-600 px-3 py-2 text-center text-sm font-bold text-white">
+        PROPHOTOGALLERY VERSION DEBUG — build 5db3c09+img-v2 — urls reçues:{" "}
+        {photoUrls.length} — urls signées affichées: {displayUrls.length}
+      </p>
+      {displayUrls.length === 0 ? (
+        <p className="text-sm text-[var(--color-muted)]">
+          Aucune URL object/sign reçue. Composant actuel: img natif (pas next/image).
+        </p>
+      ) : null}
+      {displayUrls.length > 0 ? (
+        <CardHeader>
+          <CardTitle>Photos</CardTitle>
+          <CardDescription>
+            {displayUrls.length} photo{displayUrls.length > 1 ? "s" : ""} jointe
+            {displayUrls.length > 1 ? "s" : ""}
+          </CardDescription>
+        </CardHeader>
+      ) : null}
       <div className="grid grid-cols-2 gap-3">
         {displayUrls.map((url, index) => (
           <div

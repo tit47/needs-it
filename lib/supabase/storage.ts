@@ -82,6 +82,15 @@ export async function createSignedPhotoUrls(
     return [];
   }
 
+  data.forEach((item, index) => {
+    console.log("[storage] createSignedUrls result", {
+      index,
+      path: paths[index],
+      signedUrl: item.signedUrl ?? null,
+      error: item.error ?? null,
+    });
+  });
+
   return data.flatMap((item) => {
     if (item.error || !item.signedUrl) {
       console.error(

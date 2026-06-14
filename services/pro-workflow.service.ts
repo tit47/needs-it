@@ -174,6 +174,8 @@ export async function resolveProPageView(
   const request = link.requests;
   const categoryName = request.categories?.name ?? "Demande";
   const photoUrls = await getSignedPhotoUrls(client, request.request_photos);
+  console.log("[resolveProPageView] request_photos raw:", request.request_photos);
+  console.log("[resolveProPageView] photoUrls signed:", photoUrls);
   const baseDetails = {
     link,
     categoryName,

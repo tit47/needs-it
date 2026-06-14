@@ -54,6 +54,7 @@ export default async function ProPage({ params }: ProPageProps) {
   }
 
   if (view.kind === "claimed_by_you") {
+    console.log("[ProPage] claimed_by_you photoUrls:", view.photoUrls);
     return (
       <ProPageShell title="Mission confirmée">
         <div className="flex flex-col gap-6">
@@ -75,6 +76,8 @@ export default async function ProPage({ params }: ProPageProps) {
       </ProPageShell>
     );
   }
+
+  console.log("[ProPage] pending photoUrls:", view.photoUrls);
 
   return (
     <ProPageShell title="Nouvelle demande">

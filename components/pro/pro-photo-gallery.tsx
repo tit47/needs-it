@@ -44,6 +44,7 @@ export function ProPhotoGallery({ photoUrls }: ProPhotoGalleryProps) {
               fill
               className="object-cover"
               sizes="(max-width: 640px) 50vw, 240px"
+              unoptimized
             />
           </div>
         ))}

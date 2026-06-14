@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withSignedPhotoUrls } from "@/lib/supabase/storage";
 import {
   alertsService,
   candidatesService,
@@ -477,7 +478,12 @@ export async function getRequestDetailAction(id: string): Promise<
     return { success: false, error: error?.message ?? "Demande introuvable." };
   }
 
-  return { success: true, data: data as AdminRequestDetail };
+  const request_photos = await withSignedPhotoUrls(client, data.request_photos ?? []);
+
+  return {
+    success: true,
+    data: { ...data, request_photos } as AdminRequestDetail,
+  };
 }
 
 export async function getProfessionalDetailAction(id: string): Promise<

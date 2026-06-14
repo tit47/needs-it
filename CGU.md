@@ -1,6 +1,6 @@
 # Conditions Générales d'Utilisation (CGU) — Need's it
 
-**Dernière mise à jour :** [À COMPLÉTER : date de publication]
+**Dernière mise à jour :** 14 Juin 2026
 
 **Version :** 1.0 — document préparatoire à la mise en production
 
@@ -12,9 +12,9 @@ Les présentes Conditions Générales d'Utilisation (ci-après les « **CGU** »
 
 Need's it est une plateforme de **mise en relation** entre des particuliers souhaitant obtenir une intervention de dépannage ou de service à domicile et des professionnels référencés par Need's it.
 
-**Éditeur du Service :** [À COMPLÉTER : raison sociale]  
-**Siège social :** [À COMPLÉTER : adresse]  
-**Contact :** [À COMPLÉTER : e-mail]
+**Éditeur du Service :** TV computer (Entreprise individuelle)  
+**Siège social :** 28 avenue Émile Zola, 47500 Fumel, France  
+**Contact :** [su0r44n@gmail.com](mailto:su0r44n@gmail.com)
 
 En utilisant le Service, l'utilisateur reconnaît avoir pris connaissance des présentes CGU et les accepter sans réserve.
 
@@ -122,19 +122,25 @@ Le Professionnel référencé s'engage à :
 
 ### 6.1. Facturation Need's it → Professionnel
 
-En V1, chaque mission validée via la plateforme génère une **redevance** due par le Professionnel à Need's it. Le montant unitaire par mission est défini dans les **Paramètres** de l'administration (`mission_price_eur`, **5 € par défaut**).
+En V1, chaque mission validée via la saisie correcte du code mission génère une redevance fixe de 5 € TTC due par le Professionnel à Need's it.
 
-La facturation est gérée **manuellement** par Need's it (pas de paiement en ligne intégré en V1). Le Professionnel s'engage à régler les sommes dues selon les modalités communiquées par Need's it.
+Une facture récapitulative est émise mensuellement par Need's it.
 
-**[À COMPLÉTER : modalités précises de facturation et de paiement communiquées aux professionnels (délai, moyen de paiement, pénalités éventuelles)]**
+Les sommes dues sont payables par virement bancaire dans un délai de trente (30) jours à compter de l'émission de la facture.
+
+En cas de non-paiement, Need's it pourra suspendre ou supprimer le référencement du Professionnel jusqu'à régularisation de sa situation.
 
 ---
 
 ## Article 7 — Candidatures professionnelles
 
-En V1, Need's it ne propose pas de formulaire public d'inscription professionnelle. Les candidatures sont étudiées et validées par l'équipe administrative.
+En V1, Need's it ne propose pas de formulaire public d'inscription professionnelle.
 
-**[À COMPLÉTER : procédure de candidature effective (formulaire externe, contact e-mail, partenariat, etc.)]**
+Les professionnels sont référencés manuellement par Need's it après prise de contact et validation de leur candidature par l'équipe administrative.
+
+L'équipe Need's it peut notamment vérifier les informations d'identité, les coordonnées, le numéro SIREN, les catégories d'intervention et la zone géographique d'activité du professionnel avant son référencement.
+
+Need's it se réserve le droit d'accepter ou de refuser toute candidature sans avoir à motiver sa décision.
 
 ---
 
@@ -154,7 +160,7 @@ Le Service, son code, sa structure, ses textes, graphismes et logos sont protég
 
 Toute reproduction ou exploitation non autorisée est interdite.
 
-**[À COMPLÉTER : titulaire des droits de propriété intellectuelle]**
+Vigié Titouan, exploitant de TnV computer
 
 Les contenus (textes, photos) fournis par les utilisateurs restent leur propriété. En déposant une demande, le Client accorde à Need's it une **licence non exclusive** permettant de transmettre ces contenus aux professionnels éligibles et de les stocker pour le fonctionnement du Service.
 
@@ -197,8 +203,7 @@ Need's it se réserve le droit de :
 - **suspendre ou désactiver** un professionnel référencé en cas de manquement aux présentes CGU ;
 - **refuser ou supprimer** une demande manifestement abusive ou illicite ;
 - **restreindre l'accès** à tout utilisateur en cas de fraude ou d'atteinte au Service.
-
-**[À COMPLÉTER : procédure de notification préalable, le cas échéant]**
+- Sauf urgence ou obligation légale, Need's it pourra informer préalablement le professionnel concerné avant toute suspension ou suppression définitive de son référencement.
 
 ---
 
@@ -206,9 +211,10 @@ Need's it se réserve le droit de :
 
 Pour toute question ou réclamation relative au Service :
 
-**[À COMPLÉTER : raison sociale]**  
-**[À COMPLÉTER : adresse postale]**  
-**[À COMPLÉTER : e-mail de contact]**
+**TnV computer (entreprise individuelle)**  
+28 avenue Émile Zola, 47500 Fumel
+
+**[su0r44n@gmail.com](mailto:su0r44n@gmail.com)**
 
 **Médiateur de la consommation :** [À COMPLÉTER : coordonnées du médiateur, si applicable]
 
@@ -216,19 +222,13 @@ Pour toute question ou réclamation relative au Service :
 
 ## Article 14 — Modifications des CGU
 
-Need's it peut modifier les présentes CGU à tout moment. La version en vigueur est celle publiée sur le site avec sa date de mise à jour.
-
-En cas de modification substantielle, les utilisateurs seront informés par un moyen approprié **[À COMPLÉTER : modalité d'information]**.
-
-La poursuite de l'utilisation du Service après publication des modifications vaut acceptation des nouvelles CGU.
+En cas de modification substantielle des présentes CGU, les utilisateurs seront informés par publication sur le site et, pour les professionnels référencés, par courrier électronique.
 
 ---
 
 ## Article 15 — Droit applicable et litiges
 
-Les présentes CGU sont soumises au **droit français**.
-
-En cas de litige, et à défaut de résolution amiable, compétence est attribuée aux tribunaux français **[À COMPLÉTER : préciser le tribunal compétent]**, sous réserve des règles impératives de protection des consommateurs (notamment le droit pour le consommateur de saisir le tribunal de son domicile ou un dispositif de médiation).
+Les présentes CGU sont soumises au droit français. En cas de litige, compétence est attribuée aux juridictions françaises compétentes, sous réserve des dispositions impératives applicables aux consommateurs.
 
 ---
 
@@ -241,4 +241,3 @@ Les documents suivants font partie intégrante du cadre juridique du Service :
 
 ---
 
-*Document établi sur la base du fonctionnement réel de l'application Need's it (V1). Les champs marqués « À COMPLÉTER » doivent être renseignés avant la mise en production publique.*

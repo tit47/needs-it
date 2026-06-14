@@ -5,7 +5,7 @@ import {
   renderNewRequestEmail,
   renderReminder30MinEmail,
 } from "@/emails/templates";
-import { getPublicPhotoUrl } from "@/lib/supabase/storage";
+import { createSignedPhotoUrls } from "@/lib/supabase/storage";
 import { claimsService } from "@/services/claims.service";
 import { coverageService } from "@/services/coverage.service";
 import { sendEmail } from "@/services/email.service";
@@ -25,10 +25,11 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
-function getPhotoUrls(
+async function getSignedPhotoUrls(
+  client: AdminClient,
   photos: { photo_url: string }[] | null | undefined
-): string[] {
-  return (photos ?? []).map((photo) => getPublicPhotoUrl(photo.photo_url));
+): Promise<string[]> {
+  return createSignedPhotoUrls(client, photos);
 }
 
 export async function dispatchRequestToProfessionals(
@@ -67,7 +68,7 @@ export async function dispatchRequestToProfessionals(
     return { matchedCount: 0 };
   }
 
-  const photoUrls = getPhotoUrls(request.request_photos);
+  const photoUrls = await getSignedPhotoUrls(client, request.request_photos);
 
   const linksPayload = matches.map(({ professional, distanceKm }) => ({
     request_id: requestId,
@@ -172,7 +173,7 @@ export async function resolveProPageView(
 
   const request = link.requests;
   const categoryName = request.categories?.name ?? "Demande";
-  const photoUrls = getPhotoUrls(request.request_photos);
+  const photoUrls = await getSignedPhotoUrls(client, request.request_photos);
   const baseDetails = {
     link,
     categoryName,
@@ -286,7 +287,7 @@ export async function claimMission(
     categoryName
   );
 
-  const photoUrls = getPhotoUrls(request.request_photos);
+  const photoUrls = await getSignedPhotoUrls(client, request.request_photos);
   const confirmedTemplate = renderMissionConfirmedEmail({
     clientName: request.client_name,
     clientPhone: request.client_phone,

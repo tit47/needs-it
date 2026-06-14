@@ -86,7 +86,7 @@ export async function createSignedPhotoUrls(
     if (item.error || !item.signedUrl) {
       console.error(
         "[storage] signed URL failed:",
-        item.error?.message ?? item.path
+        item.error ?? item.path
       );
       return [];
     }
@@ -116,7 +116,7 @@ export async function withSignedPhotoUrls<T extends { photo_url: string }>(
     if (!signed || signed.error || !signed.signedUrl) {
       console.error(
         "[storage] signed URL failed:",
-        signed?.error?.message ?? paths[index]
+        signed?.error ?? paths[index]
       );
       return [];
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Spinner } from "@/components/ui/spinner";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { createRequestAction } from "@/app/actions/create-request";
 import { AddressAutocompleteField } from "@/components/client/address-autocomplete-field";
 import { CategorySearchField } from "@/components/client/category-search-field";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeCategorySearchTerm } from "@/hooks/use-category-search";
 import type { Category } from "@/types";
 import type { BanAddress } from "@/utils/geocoding";
 import {
@@ -23,11 +24,29 @@ import {
 
 interface ClientRequestFlowProps {
   categories: Category[];
+  initialCategoryName?: string;
 }
 
-export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
+export function ClientRequestFlow({
+  categories,
+  initialCategoryName,
+}: ClientRequestFlowProps) {
   const formSectionRef = useRef<HTMLDivElement>(null);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const initialCategory = useMemo(() => {
+    if (!initialCategoryName) {
+      return null;
+    }
+
+    const normalized = normalizeCategorySearchTerm(initialCategoryName);
+    return (
+      categories.find(
+        (category) => normalizeCategorySearchTerm(category.name) === normalized
+      ) ?? null
+    );
+  }, [categories, initialCategoryName]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    initialCategory
+  );
   const [selectedAddress, setSelectedAddress] = useState<BanAddress | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [fieldErrors, setFieldErrors] = useState<ClientFormErrors>({});
@@ -142,6 +161,7 @@ export function ClientRequestFlow({ categories }: ClientRequestFlowProps) {
           >
             <CategorySearchField
               categories={categories}
+              defaultCategory={initialCategory}
               error={fieldErrors.categoryId}
               onSelect={setSelectedCategory}
             />

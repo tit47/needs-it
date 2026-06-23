@@ -62,12 +62,14 @@ function CategoryIcon({ name }: { name: string | null }) {
 interface CategorySearchFieldProps {
   categories: Category[];
   error?: string;
+  defaultCategory?: Category | null;
   onSelect: (category: Category | null) => void;
 }
 
 export function CategorySearchField({
   categories,
   error,
+  defaultCategory = null,
   onSelect,
 }: CategorySearchFieldProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +82,7 @@ export function CategorySearchField({
     setSearch,
     selectCategory,
     clearSelection,
-  } = useCategorySearch(categories);
+  } = useCategorySearch(categories, defaultCategory);
 
   const selectAndNotify = (category: Category) => {
     selectCategory(category);

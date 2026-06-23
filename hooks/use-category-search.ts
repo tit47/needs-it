@@ -13,10 +13,13 @@ function normalizeSearchTerm(term: string): string {
   return normalizeCategorySearchTerm(term);
 }
 
-export function useCategorySearch(categories: Category[]) {
-  const [search, setSearch] = useState("");
+export function useCategorySearch(
+  categories: Category[],
+  initialCategory: Category | null = null
+) {
+  const [search, setSearch] = useState(initialCategory?.name ?? "");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
+    initialCategory
   );
   const [isOpen, setIsOpen] = useState(false);
 

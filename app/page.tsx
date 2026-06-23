@@ -4,7 +4,12 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { categoriesService } from "@/services/categories.service";
 
-export default async function HomePage() {
+interface HomePageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const { category: initialCategoryName } = await searchParams;
   const supabase = await createClient();
   const { data: categories, error } = await categoriesService.list(supabase);
 
@@ -25,7 +30,10 @@ export default async function HomePage() {
 
   return (
     <ClientShell>
-      <ClientRequestFlow categories={categories} />
+      <ClientRequestFlow
+        categories={categories}
+        initialCategoryName={initialCategoryName}
+      />
     </ClientShell>
   );
 }

@@ -136,7 +136,7 @@ export function CategorySearchField({
           aria-describedby={error ? fieldErrorId("category-search") : undefined}
           className={cn(
             "input-field",
-            selectedCategory ? "pl-12 pr-10" : "",
+            selectedCategory && "!ps-12 pr-10",
             error && "input-field-error"
           )}
         />

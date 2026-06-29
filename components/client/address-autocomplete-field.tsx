@@ -101,7 +101,7 @@ export function AddressAutocompleteField({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? fieldErrorId(inputId) : undefined}
           className={cn(
-            "input-field pl-12 pr-12",
+            "input-field !ps-12 pr-12",
             selectedAddress && "border-green-500 focus-visible:border-green-500 focus-visible:shadow-[0_0_0_3px_rgba(34,197,94,0.2)]",
             error && "input-field-error"
           )}

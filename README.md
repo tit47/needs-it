@@ -1,714 +1,180 @@
-# Need's it
+# Need's It
 
 Plateforme de mise en relation entre **particuliers** et **professionnels** du dépannage et des services à domicile.
 
-**État du projet : étapes 01 à 08 terminées + authentification admin + documents légaux + améliorations administration (professionnels).**  
-Le code existant est la source de vérité — réutiliser composants, services et types avant d'en créer de nouveaux.
+Un particulier décrit son besoin en ligne ; la plateforme identifie les professionnels éligibles, leur envoie un lien sécurisé, et coordonne la prise en charge de la mission via un code de validation. Un back-office permet de piloter l'activité, la couverture géographique et la facturation.
 
 ---
 
-## Stack
+## 🎯 Le projet
+
+**Problème :** mettre en relation rapidement une demande de dépannage ou de service à domicile avec des professionnels disponibles, sans imposer de compte ni de friction inutile aux deux parties.
+
+**Solution :** un parcours client simple (formulaire + code mission), un accès professionnel par lien sécurisé (sans compte), et un matching automatique basé sur la catégorie de métier et la distance d'intervention. L'adresse du client n'est dévoilée qu'après validation téléphonique via le code mission.
+
+**Périmètre V1 :** pas de compte client, pas de compte professionnel permanent, pas de paiement en ligne — la plateforme se concentre sur la mise en relation, le suivi des missions et la facturation manuelle côté admin.
+
+---
+
+## 👨‍💻 Mon rôle
+
+**Fondateur & concepteur technique** — j'ai conçu et piloté l'ensemble de la solution, avec une implémentation assistée par des outils d'IA.
+
+Concrètement :
+
+- **Conception produit** — analyse du besoin, définition des fonctionnalités, parcours utilisateurs (client, professionnel, administrateur)
+- **Conception technique** — architecture applicative, modélisation des données, flux métier (matching, prise de mission, alertes, facturation)
+- **Intégration des services** — Supabase, Resend, API BAN, Telegram
+- **Gestion du projet** — avancement par étapes, cohérence fonctionnelle, documentation
+- **Développement assisté par IA** — implémentation, compréhension et validation du fonctionnement technique
+
+---
+
+## ⚙️ Fonctionnement
+
+**Parcours principal :**
+
+1. Le client remplit le formulaire sur la page d'accueil (catégorie, description, photos, adresse).
+2. Une demande est créée avec un **code mission** unique (4 caractères).
+3. Le **matching** identifie les professionnels éligibles (catégorie + distance ≤ rayon d'intervention).
+4. Chaque pro reçoit un **email** avec un **lien sécurisé** (`/pro/[token]`).
+5. Le pro consulte la demande (nom et téléphone visibles, **adresse masquée**).
+6. Le pro appelle le client ; le client communique le code mission par téléphone.
+7. Le pro saisit le code → la mission est prise → l'adresse est dévoilée.
+8. Les autres professionnels sont notifiés que la mission est attribuée.
+9. L'administrateur pilote l'ensemble via le back-office (`/admin`).
+
+**Cas particuliers :**
+
+- Aucun pro trouvé → statut `no_match` + alerte rouge
+- 1 ou 2 pros → alerte orange
+- Mission libérée par un pro → demande remise en attente, emails de réactivation
+- Rappel automatique à 30 min si la demande reste en attente (cron)
+
+---
+
+## 🏗️ Architecture
+
+Application **Next.js 15** (App Router) avec **server actions** pour les mutations métier. La couche données repose sur **Supabase** (PostgreSQL, Auth, Storage). Les emails passent par **Resend** ; les alertes couverture peuvent être relayées via **Telegram**. Le géocodage utilise l'**API BAN** (adresse.data.gouv.fr).
+
+```mermaid
+flowchart TD
+    A[Client — formulaire] --> B[Création demande + code mission]
+    B --> C[Matching catégorie + distance]
+    C --> D{Pros éligibles ?}
+    D -->|0| E[Statut no_match + alerte rouge]
+    D -->|1-2| F[Alerte orange]
+    D -->|3+| G[Couverture OK]
+    C --> H[Emails + liens sécurisés /pro/token]
+    H --> I[Professionnel consulte la demande]
+    I --> J[Appel client + saisie code mission]
+    J --> K[Mission prise — adresse dévoilée]
+    K --> L[Facturation mensuelle + notifications]
+    E --> M[Back-office admin]
+    F --> M
+    G --> M
+    L --> M
+    M --> N[Dashboard · demandes · pros · alertes · facturation]
+```
+
+Organisation détaillée du projet et responsabilités des différentes couches : voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## ✨ Fonctionnalités principales
+
+### Côté client
+
+- Formulaire de demande (catégorie, description, photos, adresse avec autocomplete BAN)
+- Code mission affiché après envoi
+- Pages légales (politique de confidentialité, CGU, mentions légales)
+- Interface responsive, thème clair/sombre
+
+### Côté professionnel
+
+- Accès par **lien sécurisé** unique (sans compte)
+- Consultation de la demande (adresse masquée avant validation)
+- Prise de mission via code communiqué par téléphone
+- Libération de mission + réactivation des autres pros
+- Emails transactionnels (nouvelle demande, confirmation, rappel, etc.)
+
+### Back-office administrateur
+
+- **Dashboard** — stats du jour, activité récente, alertes importantes
+- **Demandes** — liste, détail, historique d'événements
+- **Professionnels** — création, modification, suspension, fiche (missions + paiements)
+- **Candidats** — validation, refus, suspension
+- **Alertes** — couverture rouge/orange, filtres, résolution
+- **Opportunités** — grille couverture par catégorie, zones à développer
+- **Facturation** — suivi mensuel manuel (envoyée / payée)
+- **Paramètres** — prix mission, email expéditeur, Telegram, catégories
+- **Authentification** — connexion Supabase Auth (email + mot de passe)
+
+### Système de couverture & notifications
+
+- Analyse automatique à chaque nouvelle demande (rouge / orange / vert selon le nombre de pros éligibles)
+- Notifications dashboard, email admin et Telegram (si configuré)
+- Alerte « Aucune réponse » après 30 min via cron
+
+---
+
+## 🛠️ Stack technique
+
+Technologies utilisées dans le projet:
 
 | Couche | Technologie |
 |--------|-------------|
 | Frontend | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4 |
-| Backend | Supabase (PostgreSQL, Auth, Storage) |
+| Backend / BDD | Supabase (PostgreSQL, Auth, Storage) |
 | Emails | Resend |
-| Notifications | Telegram (alertes couverture, si configuré + activé en admin) |
+| Notifications | Telegram (alertes couverture, si configuré) |
 | Géocodage | API BAN (adresse.data.gouv.fr) |
 
 ---
 
-## Démarrage
+## 🔐 Sécurité & données
 
-```bash
-cp .env.example .env.local
-# Renseigner les variables (voir ci-dessous)
-
-npm install
-npm run dev
-```
-
-### Variables d'environnement
-
-| Variable | Obligatoire | Rôle |
-|----------|-------------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Oui | URL du projet Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Oui | Clé publique Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Oui | Opérations serveur (actions, matching, workflow pro, admin) |
-| `NEXT_PUBLIC_APP_URL` | Oui | URL de l'app (liens emails pro, liens dans alertes, ex. `http://localhost:3000`) |
-| `RESEND_API_KEY` | Recommandé | Envoi des emails transactionnels et alertes admin |
-| `RESEND_FROM_EMAIL` | Recommandé | Expéditeur par défaut des emails pro (surchargeable dans Paramètres admin pour les alertes) |
-| `CRON_SECRET` | Optionnel | Sécurise `GET /api/cron/reminders` |
-| `TELEGRAM_BOT_TOKEN` | Optionnel | Bot Telegram pour les alertes couverture |
-| `TELEGRAM_CHAT_ID` | Optionnel | Canal / chat Telegram de destination |
-
-### Base de données
-
-Appliquer toutes les migrations :
-
-```bash
-supabase db push
-```
-
-Fichiers (dans l'ordre) :
-
-1. `20250609000000_initial_schema.sql` — schéma complet V1
-2. `20250609000001_public_categories_read.sql` — lecture publique des catégories actives
-3. `20250610000000_pro_workflow.sql` — liens sécurisés pro (`request_professional_links`)
-4. `20250610000001_app_settings.sql` — paramètres applicatifs (`app_settings`)
-
-### Assets graphiques
-
-Les logos officiels sont dans `public/` :
-
-- `logo.png` — logo clair (fond turquoise, page client, espace pro)
-- `logo-dark.png` — logo sombre (fond crème, interface admin)
-
-Pour recopier depuis le dossier `Images` du projet :
-
-```bash
-node scripts/copy-brand-assets.js
-```
-
-### Compte administrateur (Supabase Auth)
-
-L'accès au back-office nécessite un utilisateur **Supabase Auth** (email + mot de passe) :
-
-1. Dans le dashboard Supabase : **Authentication → Providers** → activer **Email** (mot de passe).
-2. **Authentication → Users** → créer un utilisateur admin (l'app ne propose pas d'inscription).
-3. Se connecter sur `/admin/login`.
-
-Tout utilisateur Auth valide peut accéder à l'admin (pas de liste blanche d'emails dans l'app pour l'instant).
+- **Liens sécurisés pro** — token unique par couple demande/professionnel, pas de compte requis
+- **Adresse masquée** — dévoilée uniquement après validation du code mission par téléphone
+- **Authentification admin** — Supabase Auth + middleware sur `/admin/*` + vérification de session dans les server actions
+- **Opérations serveur** — clé service role Supabase côté serveur uniquement, jamais exposée au client
+- **Documents légaux** — politique de confidentialité, CGU, mentions légales (pages publiques) ; registre RGPD interne (`REGISTRE_RGPD.md`, non publié)
+- **Données** — schéma PostgreSQL avec UUID, pas de suppression physique, statuts et historique d'événements (`request_events`)
+- **Photos** — stockage Supabase Storage (max 5, compression côté client)
 
 ---
 
-## Avancement par étape
-
-### Étape 01 — Architecture ✅
-
-- Structure Next.js App Router, design system Tailwind (mobile first — harmonisation visuelle étapes 07 et 08)
-- Schéma PostgreSQL Supabase (UUID, pas de suppression, statuts + historique)
-- Clients Supabase (`lib/supabase/`), services de données, types TypeScript
-- Shell admin (layout, sidebar, navbar)
-- Intégrations Resend et Telegram préparées
-
-### Étape 02 — Workflow client ✅
-
-- Landing + formulaire de demande sur `/`
-- Recherche de catégorie, description, upload photos (max 5, compression)
-- Autocomplete adresse BAN (sélection obligatoire, pas de saisie libre)
-- Validation client (téléphone FR, champs requis)
-- Création de demande + code mission unique (4 caractères)
-- Écran de confirmation avec code mission (copie auto)
-- Événement `request_created` enregistré
-
-**Fichiers clés :**
-
-- `app/page.tsx`, `components/client/*`
-- `app/actions/create-request.ts`
-- `hooks/use-category-search.ts`, `use-photo-upload.ts`, `use-address-autocomplete.ts`
-
-### Étape 03 — Workflow professionnel ✅
-
-- **Matching** à la création de demande : catégorie + distance + rayon d'intervention
-- **Liens sécurisés** uniques par couple demande/pro (`/pro/[token]`)
-- **Emails** : nouvelle demande, mission confirmée, mission déjà attribuée, demande disponible, rappel 30 min
-- **Page pro** : catégorie, distance, description, photos, nom/téléphone client — **adresse masquée** avant validation
-- **Prise de mission** via code communiqué par téléphone
-- **Libération de mission** + réactivation des autres pros
-- **Historique d'événements** (`request_events`)
-- **Préparation facturation** (incrément `invoices` + `completed_jobs` à la prise)
-- **Cron rappel 30 min** : `GET /api/cron/reminders`
-
-**Fichiers clés :**
-
-- `app/pro/[token]/page.tsx`, `components/pro/*`
-- `app/actions/pro-workflow.ts`
-- `services/matching.service.ts`, `pro-links.service.ts`, `pro-workflow.service.ts`, `email.service.ts`
-- `emails/templates/pro-workflow.ts`
-
-### Étape 04 — Dashboard admin ✅
-
-- **Dashboard** (`/admin`) : stats du jour, activité récente, alertes importantes (rouge/orange)
-- **Demandes** : tableau + détail (description, photos, client, distance, historique)
-- **Professionnels** : tableau, modification, suspension/réactivation, fiche (montant dû, historique missions, historique paiements — voir étape 06)
-- **Candidats** : validation (crée un pro), refus, suspension
-- **Alertes** : liste avec filtres (ville, catégorie, dates, résolu) + marquer comme résolu
-- **Paramètres** : prix mission, email expéditeur, flag Telegram, gestion des catégories
-- **Actions serveur** : `app/actions/admin.ts` (mutations admin + revalidation des pages)
-- **Services** : `dashboard.service.ts`, `settings.service.ts` (+ extensions des services existants)
-
-**Fichiers clés :**
-
-- `app/admin/*/page.tsx`
-- `components/admin/*`
-- `app/actions/admin.ts`
-- `services/dashboard.service.ts`, `settings.service.ts`
-- `utils/admin-labels.ts`, `utils/datetime.ts`
-
-### Étape 05 — Alertes et opportunités ✅
-
-- **Génération automatique** des alertes et agrégats couverture à chaque nouvelle demande
-- **Niveaux de couverture** (selon le nombre de pros éligibles au matching) :
-  - Rouge : aucun professionnel
-  - Orange : 1 ou 2 professionnels
-  - Vert : 3 professionnels ou plus
-- **Statut `no_match`** si aucun pro trouvé à la création de demande
-- **Alerte « Aucune réponse »** (orange) lors du rappel cron 30 min si la demande est toujours en attente
-- **Mise à jour des opportunités** : compteur de demandes satisfaites à chaque prise de mission
-- **Notifications** (alertes rouge/orange uniquement) :
-  - Dashboard (alertes importantes + activité récente)
-  - Telegram (si `TELEGRAM_*` configuré **et** flag activé dans Paramètres)
-  - Email admin (vers l'email expéditeur des Paramètres, si Resend configuré)
-- **Page Alertes** enrichie : bouton « Voir détails » (demande liée, code mission, statut)
-- **Page Opportunités** (`/admin/opportunites`) :
-  - Grille couverture par catégorie (nombre de pros actifs, badge couleur)
-  - Tableau ville × catégorie : demandes, satisfaites, taux, couverture, priorité, résolution
-
-**Fichiers clés :**
-
-- `services/coverage.service.ts`, `services/alerts.service.ts` (extensions)
-- `utils/coverage.ts`
-- `emails/templates/coverage-alert.ts`
-- `components/admin/opportunities-panel.tsx`, `category-coverage-grid.tsx`
-- `components/admin/alerts-panel.tsx` (détail alerte)
-- Branchements dans `services/pro-workflow.service.ts`, `app/actions/create-request.ts`
-
-### Étape 06 — Facturation ✅
-
-- **Principe V1** : chaque mission validée (prise via code) génère un montant dû par le professionnel ; le prix unitaire est celui des **Paramètres** (`mission_price_eur`, 5 € par défaut)
-- **Enregistrement automatique** à la prise de mission : incrément mensuel dans `invoices` (branché à l'étape 03 via `prepareMissionBilling`)
-- **Facturation manuelle** : pas d'envoi automatique de facture ni de paiement en ligne
-- **Page Facturation** (`/admin/facturation`) :
-  - Tableau : professionnel, mois, missions, montant dû, état, facture envoyée, payée
-  - Filtres : mois, payé / non payé, nom du professionnel
-  - Actions : marquer facture envoyée, marquer payée, annuler paiement
-- **États de facture** : non envoyée → envoyée → payée
-- **Fiche professionnel** enrichie : historique des paiements (factures mensuelles avec état)
-
-**Non implémenté dans cette étape :**
-
-- Paiement automatique, Stripe, abonnements, envoi automatique de factures
-
-**Fichiers clés :**
-
-- `app/admin/facturation/page.tsx`
-- `components/admin/invoices-panel.tsx`
-- `services/invoices.service.ts`
-- `utils/invoices.ts`
-- `app/actions/admin.ts` (`markInvoiceSentAction`, `markInvoicePaidAction`)
-- `components/admin/professionals-panel.tsx` (historique paiements)
-- `components/admin/status-badges.tsx` (`InvoiceStatusBadge`)
-
-### Étape 07 — Design et UX ✅
-
-Harmonisation visuelle de **toute** l'application (client, pro, admin). **Aucune nouvelle fonctionnalité métier** — uniquement cohérence, lisibilité, espacements, états visuels et transitions.
-
-**Objectif :** moderniser l'interface (mobile first, inspirée Uber / Airbnb / Doctolib) en conservant l'identité Need's it et les logos officiels du dossier `Images`.
-
-**Design system** (`app/globals.css`) :
-
-| Token / élément | Light | Dark |
-|-----------------|-------|------|
-| Fond | `#7CC9D4` | `#121212` |
-| Texte principal | `#F8F6EE` | `#F8F6EE` |
-| Cartes | `#F8F6EE` | `#1D1D1D` |
-| Boutons | `#0C2F3D` | `#FF9A4A` |
-| Accent | `#E9CB72` | `#7CC9D4` |
-| Police | Inter (via `next/font`) | idem |
-| Boutons | très arrondis (`--radius-button`), grande taille, ombre légère | idem |
-| Inputs | coins arrondis (`--radius-input`), hauteur 56 px, focus bleu foncé | idem |
-
-Classes utilitaires réutilisables : `.card-surface`, `.input-field`, `.input-field-error`, `.photo-thumbnail`, `.dropdown-panel`, `.alert-banner`, `.alert-banner-error`, `.alert-banner-info`, `.alert-banner-success` (étape 08), `.field-hint`, `.field-success` (étape 08), `.nav-item-active`, `.stat-icon-wrap`.
-
-**Composants UI affinés** (`components/ui/`) :
-
-- `Button` — ombre, transition, feedback au clic
-- `Input` / `Textarea` — basés sur `.input-field`, erreurs via `FieldError` + attributs ARIA (étape 08)
-- `Table` — en-têtes lisibles, survol des lignes, scroll horizontal mobile ; `TableEmpty` avec état vide (étape 08)
-- `Badge`, `Modal` (animation d'entrée), `Card`
-- `AlertBanner`, `Spinner`, `LoadingState`, `FieldError` (étape 08)
-
-**Identité graphique** :
-
-- `AppLogo` — variante `on-brand` (logo clair sur fond turquoise) ou `on-surface` (logo sombre sur fond crème)
-- Assets dans `public/logo.png` et `public/logo-dark.png`
-- Favicon via `metadata.icons` dans `app/layout.tsx` (pointe vers `/logo.png`)
-- Script `scripts/copy-brand-assets.js` pour recopier depuis `../Images`
-
-**Layouts harmonisés** (`components/layout/`) :
-
-| Composant | Usage |
-|-----------|-------|
-| `ClientShell` | Enveloppe client : navbar + contenu + `ClientFooter` (liens légaux), bascule clair/sombre (`ThemeProvider`), `SkipLink` |
-| `ClientFooter` | Footer mobile first : liens vers les pages légales + copyright |
-| `Navbar` | Barre sticky partagée (logo + thème) |
-| `AdminShell` + `Sidebar` | Back-office : logo sombre, navigation active cohérente, `SkipLink` |
-| `ProPageHeader` | En-tête uniforme `/pro/[token]` |
-| `SkipLink` | Lien « Aller au contenu principal » (navigation clavier, étape 08) |
-
-**Par zone :**
-
-- **Client** — formulaire avec titre « Décrivez votre besoin », champs catégorie/adresse unifiés (`.input-field`, `.dropdown-panel`), grilles photos (`.photo-thumbnail`), retours via `AlertBanner` / `FieldError`
-- **Pro** — en-tête avec logo, cartes et galerie photos alignées sur le design system
-- **Admin** — cartes stats avec icônes en pastille, tableaux modernisés, modales animées, espacements revus
-
-**Non implémenté dans cette étape :**
-
-- Nouvelles pages ou parcours métier
-- Refonte complète de l'architecture (composants et services existants réutilisés)
-
-**Fichiers clés :**
-
-- `app/globals.css`, `app/layout.tsx`, `app/page.tsx` (via `ClientShell`)
-- `components/ui/*`
-- `components/layout/app-logo.tsx`, `client-shell.tsx`, `pro-page-header.tsx`, `navbar.tsx`, `sidebar.tsx`, `admin-shell.tsx`
-- `components/providers/theme-provider.tsx`
-- `components/client/landing-hero.tsx`, `client-request-flow.tsx`, `photo-upload-grid.tsx`
-- `components/client/category-search-field.tsx`, `address-autocomplete-field.tsx`
-- `components/admin/stat-cards.tsx`, `admin-page-header.tsx`
-- `public/logo.png`, `public/logo-dark.png`
-- `scripts/copy-brand-assets.js`
-
-### Étape 08 — Finitions ✅
-
-Consolidation et qualité globale. **Aucune nouvelle fonctionnalité métier** — cohérence des retours utilisateur, accessibilité, corrections mineures et factorisation des patterns répétés.
-
-**Composants UI ajoutés** (`components/ui/`) :
-
-| Composant | Rôle |
-|-----------|------|
-| `AlertBanner` | Messages d'erreur, succès et info (classes `.alert-banner-*`) |
-| `Spinner` | Animation de chargement unifiée |
-| `LoadingState` | Bloc « chargement » avec texte (modales admin, etc.) |
-| `FieldError` + `fieldErrorId()` | Erreurs sous les champs, liées via `aria-describedby` |
-
-**Accessibilité et navigation** :
-
-- `SkipLink` (`components/layout/skip-link.tsx`) sur client, admin et espace pro → `#main-content`
-- `Input` / `Textarea` : `aria-invalid`, `aria-describedby` quand une erreur est affichée
-- Champs custom (catégorie, adresse) : labels, listbox, `aria-selected` sur les suggestions
-- Case Telegram (paramètres admin) : `aria-label` explicite
-
-**Design system** (`app/globals.css`) — extensions étape 08 :
-
-- `.alert-banner-success` — confirmation (ex. paramètre enregistré)
-- `.field-hint` — textes d'aide sous les champs
-- `.field-success` — confirmation de sélection (ex. adresse validée)
-
-**Harmonisation appliquée** :
-
-- Client, pro et admin : `AlertBanner` et `Spinner` remplacent les styles ad hoc (`text-red-500`, bannières inline)
-- Tableaux admin vides : `TableEmpty` avec icône et message centré
-- Modales admin (demandes, alertes, professionnels) : `LoadingState`, effacement du contenu précédent à l'ouverture d'un autre élément
-- Validation serveur : format d'email pour l'expéditeur dans `updateSenderEmailAction` (`utils/validation.ts` → `isValidEmail`)
-
-**Non implémenté dans cette étape** :
-
-- Nouvelles pages, parcours ou règles métier
-- Tests automatiques
-- Audit des emails dans tous les clients mail
-
-**Fichiers clés** :
-
-- `components/ui/alert-banner.tsx`, `spinner.tsx`, `loading-state.tsx`, `field-error.tsx`
-- `components/layout/skip-link.tsx`
-- `app/globals.css` (`.alert-banner-success`, `.field-hint`, `.field-success`)
-- `components/ui/input.tsx`, `textarea.tsx`, `table.tsx` (`TableEmpty`)
-- `components/client/*`, `components/pro/*`, `components/admin/*` (retours utilisateur unifiés)
-- `utils/validation.ts` (`isValidEmail`)
-
-### Étape supplémentaire — Authentification admin ✅
-
-Protection du back-office via **Supabase Auth**. **Aucune modification des workflows métier** (client, pro, matching, facturation, etc.).
-
-**Fonctionnement** :
-
-- Page `/admin/login` — formulaire email + mot de passe (`AdminLoginForm`, design system étapes 07–08)
-- **Middleware** (`middleware.ts` + `lib/supabase/middleware.ts`) sur `/admin` et `/admin/*` :
-  - non connecté → redirection vers `/admin/login`
-  - déjà connecté sur `/admin/login` → redirection vers `/admin`
-- **Déconnexion** — bouton dans la sidebar admin (`signOutAdminAction`)
-- **Server actions admin** (`app/actions/admin.ts`) — chaque mutation vérifie la session via `requireAdminSession()` (`lib/auth/admin-session.ts`)
-
-**Structure des routes admin** :
-
-| Chemin | Layout | Accès |
-|--------|--------|-------|
-| `app/admin/login/page.tsx` | Racine admin (pas de sidebar) | Public |
-| `app/admin/(dashboard)/*` | `AdminShell` (sidebar + navbar) | Session requise |
-
-**Fichiers clés** :
-
-- `app/admin/login/page.tsx`, `components/admin/admin-login-form.tsx`
-- `app/admin/(dashboard)/layout.tsx`, `app/admin/layout.tsx` (racine sans shell)
-- `app/actions/auth.ts` (`signInAdminAction`, `signOutAdminAction`)
-- `lib/auth/admin-session.ts`, `lib/supabase/middleware.ts`, `middleware.ts`
-- `components/layout/sidebar.tsx` (bouton Déconnexion)
-
-**Non implémenté** :
-
-- Création de comptes admin depuis l'app
-- Liste blanche d'emails admin
-- Rôles / permissions granulaires
-- Réinitialisation de mot de passe dans l'UI
-
-### Étape supplémentaire — Documents légaux et conformité ✅
-
-Documentation légale préparatoire à la mise en production et pages publiques associées. **Aucune modification des workflows métier** (client, pro, matching, facturation, etc.).
-
-**Documents Markdown (source de vérité du contenu) :**
-
-| Fichier | Usage |
-|---------|-------|
-| `POLITIQUE_DE_CONFIDENTIALITE.md` | Politique de confidentialité (public) |
-| `CGU.md` | Conditions Générales d'Utilisation (public) |
-| `MENTIONS_LEGALES.md` | Mentions légales (public) |
-| `REGISTRE_RGPD.md` | Registre des traitements — **document interne**, non exposé sur le site |
-
-Les champs marqués `[À COMPLÉTER]` dans les documents publics doivent être renseignés avant le lancement.
-
-**Pages publiques :**
-
-| Route | Contenu |
-|-------|---------|
-| `/politique-de-confidentialite` | Politique de confidentialité |
-| `/cgu` | Conditions Générales d'Utilisation |
-| `/mentions-legales` | Mentions légales |
-
-**Footer client :**
-
-- Liens visibles vers les 3 pages légales depuis toutes les pages enveloppées par `ClientShell` (accueil + pages légales)
-- Copyright Need's it
-
-**Fonctionnement technique :**
-
-- Lecture des fichiers `.md` côté serveur uniquement (`lib/get-legal-document.ts` — module Node.js `fs`)
-- Métadonnées et liens du footer partagés sans dépendance serveur (`lib/legal-documents.ts`)
-- Rendu Markdown → HTML via `utils/markdown.ts` (titres, listes, tableaux, liens internes entre documents)
-- Affichage dans une `Card` avec styles `.legal-prose` (`app/globals.css`)
-
-**Fichiers clés :**
-
-- `components/layout/client-footer.tsx`, `components/layout/client-shell.tsx`
-- `components/client/legal-document-view.tsx`
-- `app/politique-de-confidentialite/page.tsx`, `app/cgu/page.tsx`, `app/mentions-legales/page.tsx`
-- `lib/legal-documents.ts`, `lib/get-legal-document.ts`, `utils/markdown.ts`
-
-### Étape supplémentaire — Gestion des professionnels (admin) ✅
-
-Enrichissement du panneau **Professionnels** (`/admin/professionnels`). **Aucune modification des workflows client ou pro.**
-
-**Nouveautés :**
-
-- **Création directe** d'un professionnel depuis l'admin (modale « Ajouter un professionnel »)
-- **Autocomplete adresse BAN** réutilisé depuis le parcours client (`AddressAutocompleteField`) — sélection obligatoire, géocodage serveur
-- **Sélection multi-catégories** via `CategoryMultiSearchField` et `useCategoryMultiSearch`
-- **Validation serveur** dans `createProfessionalAction` : email, téléphone FR, SIREN, adresse vérifiée, au moins une catégorie, unicité SIREN
-- Fiche, modification, suspension/réactivation et historique missions/paiements inchangés
-
-**Fichiers clés :**
-
-- `components/admin/professionals-panel.tsx`
-- `app/actions/admin.ts` (`createProfessionalAction`, `updateProfessionalAction`, `getProfessionalDetailAction`)
-- `services/professionals.service.ts` (`create`, `update`, `getBySiren`)
-- `components/client/address-autocomplete-field.tsx`, `components/client/category-search-field.tsx`
-- `hooks/use-category-search.ts` (`useCategoryMultiSearch`)
+## 📱 UX / conception
+
+- **Mobile-first** — parcours client et pro pensés pour le téléphone ; admin utilisable sur mobile, optimisé desktop
+- **Design system** — tokens CSS (couleurs, rayons, ombres), composants UI réutilisables (`Button`, `Input`, `Table`, `AlertBanner`, etc.)
+- **Identité visuelle** — palette Need's It (turquoise, crème, bleu foncé), logos clair/sombre, police Inter
+- **Thème clair/sombre** — bascule disponible côté client
+- **Accessibilité** — lien « Aller au contenu principal » (`SkipLink`), attributs ARIA sur les champs et listbox, messages d'erreur unifiés
 
 ---
 
-## Fonctionnalités disponibles
+## 🚧 État du projet
 
-### Côté client (`/`)
+V1 fonctionnelle, avec les parcours client, professionnel et administrateur, le matching, les notifications, le suivi des missions et la facturation manuelle.
 
-| Fonctionnalité | Statut |
-|----------------|--------|
-| Formulaire de demande complet | ✅ |
-| Upload photos | ✅ |
-| Autocomplete adresse BAN | ✅ |
-| Code mission affiché après envoi | ✅ |
-| Barre de navigation + bascule clair/sombre | ✅ |
-| Footer avec liens légaux | ✅ |
-| Pages légales (`/politique-de-confidentialite`, `/cgu`, `/mentions-legales`) | ✅ |
-| Compte client | ❌ (non prévu V1) |
-
-### Côté professionnel (`/pro/[token]`)
-
-| Fonctionnalité | Statut |
-|----------------|--------|
-| Accès par lien sécurisé (sans compte) | ✅ |
-| Consultation demande (sans adresse) | ✅ |
-| Appel client + saisie code mission | ✅ |
-| Adresse complète après confirmation | ✅ |
-| Libération de mission | ✅ |
-| Emails transactionnels | ✅ (si Resend configuré) |
-| Interface harmonisée (design system étapes 07–08) | ✅ |
-
-### Côté admin (`/admin/*`)
-
-| Route | Statut |
-|-------|--------|
-| `/admin` | ✅ Dashboard (stats, activité, alertes importantes) |
-| `/admin/demandes` | ✅ Liste + détail demande |
-| `/admin/professionnels` | ✅ Liste, création, fiche (missions + paiements), modification, suspension |
-| `/admin/candidats` | ✅ Liste, validation / refus / suspension |
-| `/admin/alertes` | ✅ Liste filtrable, détail, résolution |
-| `/admin/opportunites` | ✅ Couverture par catégorie + tableau zones à développer |
-| `/admin/parametres` | ✅ Prix mission, email, Telegram (flag), catégories |
-| `/admin/facturation` | ✅ Suivi mensuel, filtres, marquer envoyée / payée / annuler paiement |
-| `/admin/login` | ✅ Connexion Supabase Auth (email + mot de passe) |
-| Interface harmonisée (design system étapes 07–08) | ✅ |
-| Authentification admin | ✅ Session Supabase Auth + middleware + protection des server actions |
-| Déconnexion | ✅ Bouton dans la sidebar admin |
-
-### API
-
-| Route | Rôle |
-|-------|------|
-| `GET /api/cron/reminders` | Rappels 30 min + alerte « Aucune réponse » (header `Authorization: Bearer CRON_SECRET` si défini) |
+Les évolutions hors périmètre de la V1 et les limites détaillées sont documentées dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
-## Parcours métier (résumé)
+## 📚 Documentation technique
 
-```
-Client remplit le formulaire (/)
-        ↓
-Demande créée + code mission généré
-        ↓
-Matching → pros éligibles (catégorie + distance ≤ rayon)
-        ↓
-Analyse couverture → alertes + opportunités mises à jour
-        ↓
-(si 0 pro) statut no_match + alerte rouge
-        ↓
-(si 1–2 pros) alerte orange
-        ↓
-(si rouge/orange) notifications dashboard + Telegram/email (si configuré)
-        ↓
-Email « Nouvelle demande » + lien /pro/[token] par pro (si matching > 0)
-        ↓
-Pro ouvre le lien → voit nom/tél, pas l'adresse
-        ↓
-Pro appelle le client → client donne le code mission
-        ↓
-Pro saisit le code → mission « claimed » → compteur « satisfaites » + facture mensuelle mise à jour
-        ↓
-Adresse dévoilée + email « Mission confirmée »
-        ↓
-Autres pros désactivés + email « Mission déjà attribuée »
-        ↓
-(option) Pro libère → demande repending + emails « Demande disponible »
-        ↓
-(option) Cron 30 min → email « Rappel » + alerte « Aucune réponse » si toujours pending
-        ↓
-Admin se connecte sur /admin/login (Supabase Auth)
-        ↓
-Admin pilote via /admin (demandes, pros, candidats, alertes, opportunités, facturation, paramètres)
-```
+Pour le setup, le schéma de données, l'arborescence du code, les conventions de développement et le détail des étapes d'implémentation :
+
+**→ [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**
 
 ---
 
-## Structure du projet
+## 🧠 Ce que le projet démontre
 
-```
-app/
-  page.tsx                    → Landing + formulaire client (via ClientShell)
-  layout.tsx                  → Layout racine, metadata, ThemeProvider
-  globals.css                 → Design system (tokens CSS, utilitaires, .legal-prose)
-  politique-de-confidentialite/page.tsx → Page légale
-  cgu/page.tsx                → Page légale
-  mentions-legales/page.tsx   → Page légale
-  actions/
-    create-request.ts         → Création demande (server action)
-    pro-workflow.ts           → Prise / libération mission (server actions)
-    admin.ts                  → Actions back-office (session admin requise)
-    auth.ts                   → Connexion / déconnexion admin
-  pro/[token]/page.tsx        → Page professionnelle
-  api/cron/reminders/route.ts → Rappels 30 min
-  admin/
-    login/page.tsx            → Connexion admin (publique)
-    (dashboard)/              → Pages admin protégées (AdminShell)
-      layout.tsx              → Shell sidebar + navbar
-      page.tsx, demandes/, …  → Dashboard et sections
-
-POLITIQUE_DE_CONFIDENTIALITE.md → Source contenu politique de confidentialité
-CGU.md                         → Source contenu CGU
-MENTIONS_LEGALES.md            → Source contenu mentions légales
-REGISTRE_RGPD.md               → Registre RGPD interne (non publié)
-
-middleware.ts                 → Protection /admin/* (redirection login)
-
-components/
-  client/                     → Parcours client (formulaire, confirmation, legal-document-view…)
-  pro/                        → Parcours pro (claim, contact, photos…)
-  admin/                      → Panneaux admin (tableaux, stats, paramètres…)
-  ui/                         → Design system (Button, Card, Input, Table, AlertBanner, Spinner…)
-  layout/                     → AppLogo, ClientShell, ClientFooter, AdminShell, Sidebar, Navbar, ProPageHeader, SkipLink
-  providers/                  → ThemeProvider (clair / sombre)
-
-services/                     → Couche données + orchestration métier
-  matching.service.ts         → Recherche pros par catégorie/distance
-  pro-links.service.ts        → Liens sécurisés /pro/[token]
-  pro-workflow.service.ts     → Matching, claim, release, emails, rappels, couverture
-  coverage.service.ts         → Alertes auto, opportunités, notifications couverture
-  alerts.service.ts           → CRUD alertes unitaires et coverage_alerts
-  email.service.ts            → Envoi via Resend
-  dashboard.service.ts        → Stats et activité admin
-  settings.service.ts         → Paramètres app_settings
-  invoices.service.ts         → Facturation mensuelle (liste, statuts envoyée/payée)
-  requests.service.ts         → Demandes
-  claims.service.ts           → Prises de mission
-  events.service.ts           → Historique request_events
-  photos.service.ts           → Upload Storage
-  …
-
-lib/
-  auth/
-    admin-session.ts          → requireAdminSession() pour server actions admin
-  legal-documents.ts          → Types, métadonnées et liens footer (sans fs)
-  get-legal-document.ts       → Lecture des .md côté serveur uniquement
-  supabase/                   → client, server, admin, middleware, storage
-  resend.ts                   → Client Resend
-  telegram.ts                 → Notifications Telegram
-
-emails/templates/             → Templates HTML transactionnels
-  pro-workflow.ts             → Emails pro
-  coverage-alert.ts           → Email alerte couverture admin
-
-types/                        → database.ts (schéma), index.ts (réexports + SupabaseDbClient)
-
-utils/                        → validation, geocoding, distance, mission-code, phone,
-                              coverage, invoices, admin-labels, datetime, markdown…
-
-hooks/                        → useCategorySearch, useCategoryMultiSearch, usePhotoUpload,
-                              useAddressAutocomplete
-
-supabase/migrations/          → Migrations SQL
-public/                       → logo.png, logo-dark.png, logo.svg (legacy)
-scripts/                      → copy-brand-assets.js
-```
-
----
-
-## Tables principales
-
-| Table | Rôle |
-|-------|------|
-| `categories` | Métiers (Plombier, Électricien…) |
-| `professionals` | Pros actifs (catégories[], rayon_km, lat/lon) |
-| `candidate_professionals` | Candidatures pro (validation admin) |
-| `requests` | Demandes clients (statut, code mission, claimed_by, professional_count) |
-| `request_photos` | Photos liées à une demande |
-| `request_professional_links` | Token sécurisé par demande/pro + distance |
-| `claims` | Historique prises / libérations |
-| `request_events` | Journal d'événements |
-| `invoices` | Facturation mensuelle par pro (`mission_count`, `amount`, `invoice_sent`, `paid`) |
-| `alerts` | Alertes unitaires par événement (créées automatiquement, résolvables en admin) |
-| `coverage_alerts` | Agrégats couverture par ville + catégorie (page Opportunités + dashboard) |
-| `app_settings` | Paramètres applicatifs (prix mission, email expéditeur, flag Telegram) |
-
-### Statuts demande (`request_status`)
-
-`pending` → `claimed` → `completed` | `cancelled` | `no_match`
-
-(`no_match` : aucun pro trouvé au matching ; `completed` : prévu schéma, pas encore exposé dans l'UI)
-
-### Niveaux d'alerte (`alert_level`)
-
-| Niveau | Règle (pros éligibles au matching) |
-|--------|-------------------------------------|
-| `red` | 0 professionnel |
-| `orange` | 1 ou 2 professionnels |
-| `green` | 3 professionnels ou plus |
-
-### Événements (`request_event_type`)
-
-`request_created`, `email_sent`, `link_opened`, `mission_claimed`, `mission_released`, `mission_completed`
-
-### États de facture (V1, suivi manuel)
-
-| État | Condition en base |
-|------|-------------------|
-| Non envoyée | `invoice_sent = false` et `paid = false` |
-| Envoyée | `invoice_sent = true` et `paid = false` |
-| Payée | `paid = true` (force `invoice_sent = true`) |
-
-Une ligne `invoices` par couple `(professional_id, month)` ; le montant = `mission_count × mission_price_eur`.
-
----
-
-## Emails (Resend)
-
-| Template | Déclencheur |
-|----------|-------------|
-| `new-request` | Demande créée, matching OK |
-| `mission-confirmed` | Code mission validé |
-| `mission-taken` | Autre pro notifié après prise |
-| `demand-available` | Mission libérée |
-| `reminder-30min` | Cron 30 min, demande toujours pending |
-| `coverage-alert` | Alerte couverture rouge/orange (email vers expéditeur Paramètres) |
-
-Templates HTML : `emails/templates/pro-workflow.ts`, `emails/templates/coverage-alert.ts`  
-Si `RESEND_API_KEY` est absent, les envois sont ignorés (log warning, pas de crash).
-
----
-
-## Conventions pour les prochains développements
-
-1. **Mobile first** — l'expérience pro et client est pensée téléphone d'abord ; l'admin est utilisable sur mobile mais optimisé desktop.
-2. **Pas de compte pro** — accès uniquement via lien sécurisé reçu par email.
-3. **Le téléphone + code mission** garantissent un échange réel avant dévoilement de l'adresse.
-4. **Server actions + admin client** — les mutations métier passent par `createAdminClient()` côté serveur, jamais la clé service role côté client. Les actions dans `app/actions/admin.ts` appellent `requireAdminSession()` en premier ; connexion/déconnexion via `app/actions/auth.ts`.
-5. **Admin protégé** — routes `/admin/*` (sauf `/admin/login`) via `middleware.ts` ; ne pas exposer le shell admin (`AdminShell`) sur la page de login (groupe `(dashboard)`).
-6. **Design system** — réutiliser `components/ui/*` et les tokens/utilitaires dans `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`, classes `.input-field`, `.card-surface`, etc.). Messages utilisateur : `AlertBanner` (pas de `text-red-500` ad hoc). Chargements : `Spinner` / `LoadingState`. Erreurs de champ : `FieldError`. Logos via `AppLogo` (`on-brand` sur fond turquoise, `on-surface` sur fond crème).
-7. **Services** — toute requête Supabase passe par `services/*.service.ts`, pas d'appels directs dans les composants.
-8. **Historique** — tracer les actions significatives via `eventsService.log()`.
-9. **Professionnels en base** — le matching exige `latitude`/`longitude`, `categories` (noms exacts, ex. `"Plombier"`), `active = true`, et `radius_km`.
-10. **Composants admin** — réutiliser `components/admin/*` et `AdminPageHeader` avant d'en créer de nouveaux.
-11. **Photos** — `ProPhotoGallery` ignore les URLs vides ou invalides (ne jamais passer une URL non valide à `next/image`).
-12. **Couverture** — toute logique alertes/opportunités passe par `coverage.service.ts` et `utils/coverage.ts` ; ne pas dupliquer les seuils rouge/orange/vert ailleurs.
-13. **Facturation** — toute lecture/écriture `invoices` passe par `invoices.service.ts` et `utils/invoices.ts` ; les montants sont recalculés à la prise via `prepareMissionBilling` (prix lu dans `settingsService`).
-14. **Design (étapes 07–08)** — ne pas créer de styles ad hoc : étendre `app/globals.css` et `components/ui/*`. Champs custom (autocomplete, catégorie) utilisent `.input-field`, `.dropdown-panel` et `FieldError` pour les erreurs. Retours globaux : `AlertBanner`. Logos via `AppLogo`, jamais de nouvelle identité visuelle.
-15. **Accessibilité** — `SkipLink` sur les layouts principaux ; champs avec label + `aria-invalid` / `aria-describedby` quand pertinent ; listbox avec `aria-label` et `aria-selected` sur les options.
-16. **Documents légaux** — le contenu public provient des fichiers `.md` à la racine ; ne pas dupliquer le texte dans les composants. Lecture serveur via `get-legal-document.ts` uniquement ; les composants client importent `lib/legal-documents.ts` (pas de `fs`). Mettre à jour `REGISTRE_RGPD.md` en parallèle des évolutions de traitement de données.
-17. **Création pro admin** — passer par `createProfessionalAction` avec adresse BAN vérifiée et catégories issues de `categoriesService` ; réutiliser `AddressAutocompleteField` et `CategoryMultiSearchField`.
-
----
-
-## Limites connues (V1)
-
-- **Comptes admin** — création manuelle dans Supabase Auth uniquement ; pas d'inscription, pas de réinitialisation mot de passe dans l'app ; tout utilisateur Auth valide peut accéder à l'admin (pas de liste blanche)
-- **Emails pro** — utilisent `RESEND_FROM_EMAIL` / défaut Resend, pas `app_settings.sender_email`
-- **Extension de recherche** — pas de `search_extended` si aucun pro trouvé
-- **Clôture de mission** — statut `completed` prévu en schéma, pas encore exposé dans l'UI pro ou admin
-- **Paiement en ligne** — pas de Stripe, abonnements ni envoi automatique de factures
-- **Tests automatiques** — pas de suite de tests (lint + build manuels)
-- **Emails** — templates HTML en place, non validés dans tous les clients mail
-- **Documents légaux** — champs `[À COMPLÉTER]` à renseigner avant mise en production (éditeur, hébergeur, contacts, durées de conservation, etc.) ; `REGISTRE_RGPD.md` est interne et non lié depuis le site
-
----
-
-## Prochaines étapes (non implémentées)
-
-- Compléter les placeholders des documents légaux et valider juridiquement avant lancement public
-- Liste blanche d'emails admin, rôles ou permissions granulaires
-- Réinitialisation / changement de mot de passe admin dans l'UI
-- Utilisation de l'email expéditeur stocké en `app_settings` pour les emails transactionnels pro
-- Extension de recherche (`search_extended`) si aucun pro trouvé
-- Statut `completed` / clôture de mission côté pro ou admin
-- Paiement automatique, Stripe, abonnements, facturation automatique
-
----
-
-## Scripts
-
-```bash
-npm run dev      # Développement
-npm run build    # Build production
-npm run start    # Serveur production
-npm run lint     # ESLint
-
-node scripts/copy-brand-assets.js   # Recopie logo.png et logo-dark.png depuis ../Images
-```
+- **Conception produit** — traduction d'un besoin métier en parcours utilisateurs concrets (3 acteurs, sans compte client ni pro)
+- **Modélisation de flux** — matching géographique, validation par code, gestion des états de mission et des cas limites (aucun pro, libération, rappel)
+- **Architecture applicative** — séparation pages / services / actions serveur, intégration de services externes (BDD, emails, géocodage, notifications)
+- **Modélisation de données** — schéma relationnel avec statuts, historique d'événements, facturation mensuelle et alertes de couverture
+- **Réflexion sécurité & RGPD** — masquage d'adresse, liens tokenisés, auth admin, documents légaux et registre de traitement
+- **Pilotage de projet** — avancement structuré par étapes, documentation, identification des limites V1 et de la roadmap
